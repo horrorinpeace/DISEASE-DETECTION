@@ -1,4 +1,7 @@
 # worker_infer.py
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = ""   # disable all GPUs for this process
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # silence TF if it gets imported indirectly
 import json, sys
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 import torch
