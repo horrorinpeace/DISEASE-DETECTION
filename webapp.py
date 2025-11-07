@@ -160,7 +160,6 @@ elif page == "Detection Panel":
             img_resized = image.resize((224, 224))
             img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
             img_array = np.expand_dims(img_array, axis=0)
-            img_array = preprocess_input(img_array)  # ✅ scales to [-1, 1]
 
 
             # Predict
@@ -238,6 +237,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
