@@ -196,25 +196,44 @@ elif page == "Detection Panel":
             """
 
             try:
-                from openai import OpenAI
-                client = OpenAI(api_key="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",
-                                project="proj_aWIZcOZakna1gwent6CATWJ1"
-                                 )
+                import requests
+                import os
 
-                response = client.chat.completions.create(
-                    model="gpt-5",  # or "gpt-4-turbo"
-                    messages=[
-                        {"role": "system", "content": "You are a scientific report writer."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    max_tokens=800
-                )
+                API_URL = "https://h2ogpte.genai.h2o.ai/v1/chat/completions"
+                API_KEY = os.getenv("H2O_API_KEY", "your_api_key_here")
 
-                report_text = response.choices[0].message.content
+                def h2ogpte_chat(prompt: str, model: str = "h2ogpt-7b-chat") -> str:
+                payload = {
+                "model": model,
+                "messages": [
+                 {"role": "system", "content": "You are a scientific report writer."},
+                {"role": "user",   "content": prompt}
+                ],
+                "max_tokens": 800,
+                 "temperature": 0.7
+                 }
+                 headers = {
+                 "Authorization": f"Bearer {API_KEY}",
+                 "Content-Type": "application/json"
+                 }
+                 resp = requests.post(API_URL, json=payload, headers=headers, timeout=60)
+                 resp.raise_for_status()
+                 result = resp.json()
+                 # depending on API shape, adapt:
+                 return result["choices"][0]["message"]["content"]
 
-            except Exception as e:
-                 st.error(f"GPT Error: {e}")
-                 report_text = "Could not generate report."
+                # Usage inside your Streamlit logic:
+                prompt = f"""Create a concise lab report using:
+                Detection Results: {df_results.to_dict(orient='records')}
+                Sensor Data: {sensor}
+                Format as structured tables under headings:
+                Sample Analysis, Sensor Data, Observations, Conclusion."""
+try:
+    report_text = h2ogpte_chat(prompt)
+    except Exception as e:
+    st.error(f"H2O GPT Error: {e}")
+    report_text = "Could not generate report."
+
                  st.markdown(report_text)
 
             # PDF generation
@@ -242,6 +261,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
