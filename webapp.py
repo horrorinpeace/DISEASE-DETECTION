@@ -6,6 +6,7 @@ from PIL import Image
 import streamlit as st
 from fpdf import FPDF
 import openai
+from huggingface_hub import hf_hub_download
 from flask import Flask, request, jsonify
 import tensorflow as tf
 
@@ -240,5 +241,6 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
