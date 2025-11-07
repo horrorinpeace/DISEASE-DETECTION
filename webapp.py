@@ -6,7 +6,8 @@ from PIL import Image
 import streamlit as st
 import requests
 from fpdf import FPDF
-from huggingface_hub import io
+from huggingface_hub import hf_hub_download
+import io
 import threading
 import numpy as np
 import pandas as pd
@@ -261,3 +262,4 @@ elif page == "Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
