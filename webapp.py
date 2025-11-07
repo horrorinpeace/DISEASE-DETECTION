@@ -60,6 +60,7 @@ model_path = hf_hub_download(
     repo_id="qwertymaninwork/Plant_Disease_Detection_System",
     filename="mobilenetv2_plant.h5"
 )
+
 @st.cache_resource
 def load_model():
     model = tf.keras.models.load_model(model_path, compile=False, safe_mode=False)
@@ -67,14 +68,16 @@ def load_model():
 
 try:
     model = load_model()
-    CLASS_NAMES = ['HEALTHY MILLET', 'HEALTHY POTATO', 'HEALTHY RICE', 'HEALTHY SUGARCANE',
-                  'HEALTHY TEA LEAF', 'HEALTHY TOMATO', 'HEALTHY WHEAT', 'MILLETS BLAST',
-                  'MILLETS RUST', 'POTATO EARLY BLIGHT', 'POTATO LATE BLIGHT',
-                  'RICE BACTERIAL BLIGHT', 'RICE BROWN SPOT', 'RICE LEAF SMUT',
-                  'SUGARCANE RED ROT', 'SUGARCANE RUST', 'SUGARCANE YELLOW',
-                  'TEA GRAY BLIGHT', 'TEA GREEN MIRID BUG', 'TEA HELOPELTIS',
-                  'TOMATO LEAF MOLD', 'TOMATO MOSAIC VIRUS', 'TOMATO SEPTORIA LEAF SPOT',
-                  'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT', 'WHEAT YELLOW RUST']
+    CLASS_NAMES = [
+        'HEALTHY MILLET', 'HEALTHY POTATO', 'HEALTHY RICE', 'HEALTHY SUGARCANE',
+        'HEALTHY TEA LEAF', 'HEALTHY TOMATO', 'HEALTHY WHEAT', 'MILLETS BLAST',
+        'MILLETS RUST', 'POTATO EARLY BLIGHT', 'POTATO LATE BLIGHT',
+        'RICE BACTERIAL BLIGHT', 'RICE BROWN SPOT', 'RICE LEAF SMUT',
+        'SUGARCANE RED ROT', 'SUGARCANE RUST', 'SUGARCANE YELLOW',
+        'TEA GRAY BLIGHT', 'TEA GREEN MIRID BUG', 'TEA HELOPELTIS',
+        'TOMATO LEAF MOLD', 'TOMATO MOSAIC VIRUS', 'TOMATO SEPTORIA LEAF SPOT',
+        'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT', 'WHEAT YELLOW RUST'
+    ]
 except Exception as e:
     st.warning(f"⚠️ Could not load model: {e}")
     model = None
@@ -83,8 +86,8 @@ except Exception as e:
 # ==========================
 # THINGSPEAK CONFIG
 # ==========================
-THINGSPEAK_CHANNEL_ID = "3152731"   # ← Replace with your ThingSpeak Channel ID
-READ_API_KEY = "8WGWK6AUAF74H6DJ"          # ← Replace with your ThingSpeak Read API Key
+THINGSPEAK_CHANNEL_ID = "3152731"  # ← Replace with your ThingSpeak Channel ID
+READ_API_KEY = "8WGWK6AUAF74H6DJ"  # ← Replace with your ThingSpeak Read API Key
 
 def fetch_sensor_data():
     url = f"https://api.thingspeak.com/channels/{THINGSPEAK_CHANNEL_ID}/feeds.json?api_key={READ_API_KEY}&results=1"
@@ -136,7 +139,7 @@ elif page == "Detection Panel":
     # ==========================
     if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="Captured / Uploaded Image",)
+        st.image(image, caption="Captured / Uploaded Image")
 
         if model:
             from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
@@ -148,10 +151,12 @@ elif page == "Detection Panel":
             preds = model.predict(img_array)
             confidence = np.max(preds)
             predicted_class = CLASS_NAMES[np.argmax(preds)]
+
             df_results = pd.DataFrame({
                 "Disease": CLASS_NAMES,
                 "Probability": preds[0]
             }).sort_values(by="Probability", ascending=False)
+
             st.success(f"✅ Prediction: **{predicted_class}** ({confidence*100:.2f}% confidence)")
             st.table(df_results)
         else:
@@ -160,7 +165,7 @@ elif page == "Detection Panel":
     # ==========================
     # SENSOR DATA (TEXT-ONLY)
     # ==========================
-    st.subheader("📡 Live Sensor Data ")
+    st.subheader("📡 Live Sensor Data")
     from streamlit_autorefresh import st_autorefresh
     st_autorefresh(interval=10000, key="sensor_refresh")
     sensor = fetch_sensor_data()
@@ -179,11 +184,12 @@ elif page == "Detection Panel":
     # LAB REPORT GENERATION
     # ==========================
     st.subheader("🧾 Generate Lab Report")
+
     if st.button("Generate Lab Report"):
         if uploaded_file is None:
             st.error("Please upload or capture an image first.")
         elif model is None:
-            st.error("AI model  not loaded.")
+            st.error("AI model not loaded.")
         else:
             st.info("Generating lab report via GPT...")
 
@@ -191,151 +197,59 @@ elif page == "Detection Panel":
             Create a concise lab report using:
             Detection Results: {df_results.to_dict(orient='records')}
             Sensor Data: {sensor}
-            Format as structured tables under headings: 
+            Format as structured tables under headings:
             Sample Analysis, Sensor Data, Observations, Conclusion.
             """
-try:
-    API_URL = "https://h2ogpte.genai.h2o.ai/v1/chat/completions"
-    API_KEY = st.secrets.get("H2O_API_KEY", "your_api_key_here")
 
-    def h2ogpte_chat(prompt: str, model: str = "h2ogpt-7b-chat") -> str:
-        """Send a prompt to H2O GPT API and return generated text."""
-        payload = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": "You are a scientific report writer."},
-                {"role": "user", "content": prompt},
-            ],
-            "max_tokens": 800,
-            "temperature": 0.7,
-        }
-        headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-        try:
-            response = requests.post(API_URL, json=payload, headers=headers, timeout=60)
-            response.raise_for_status()
-            result = response.json()
-            if "choices" in result and len(result["choices"]) > 0:
-                return result["choices"][0]["message"]["content"]
-            elif "text" in result:
-                return result["text"]
-            else:
-                return "No response received from H2O GPT."
-        except Exception as e:
-            st.error(f"H2O GPT API Error: {e}")
-            return "Could not generate report."
+            try:
+                from openai import OpenAI
+                client = OpenAI(
+                    api_key="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",
+                    project="proj_aWIZcOZakna1gwent6CATWJ1"
+                )
 
-except Exception as e:
-    st.error(f"⚠️ H2O GPT setup failed: {e}")
+                response = client.chat.completions.create(
+                    model="gpt-5",  # or "gpt-4-turbo"
+                    messages=[
+                        {"role": "system", "content": "You are a scientific report writer."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=800
+                )
 
+                report_text = response.choices[0].message.content
 
-# Example usage inside Streamlit
-def generate_lab_report(df_results, sensor):
-    """Generate a structured lab report using H2O GPT."""
+            except Exception as e:
+                st.error(f"GPT Error: {e}")
+                report_text = "Could not generate report."
 
-    prompt = f"""
-    Create a concise lab report using:
-    Detection Results: {df_results.to_dict(orient='records')}
-    Sensor Data: {sensor}
+            st.markdown(report_text)
 
-    Format as structured tables under headings:
-    Sample Analysis, Sensor Data, Observations, Conclusion.
-    """
+            # PDF generation
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", "B", 16)
+            pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
+            pdf.set_font("Arial", "", 12)
+            pdf.multi_cell(0, 8, report_text)
 
-    report_text = h2ogpte_chat(prompt)
-    return report_text
+            # Add image safely to PDF
+            temp_img_path = "temp_image.jpg"
+            with open(temp_img_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
 
+            pdf.image(temp_img_path, x=10, y=None, w=100)
+            pdf_bytes = pdf.output(dest='S').encode('latin-1')
 
-# Example Streamlit UI
-st.title("Lab Report Generator")
+            st.download_button(
+                "📥 Download PDF",
+                data=pdf_bytes,
+                file_name="lab_report.pdf",
+                mime="application/pdf"
+            )
 
-if st.button("Generate Report"):
-    try:
-        report_text = generate_lab_report(df_results, sensor)
-        st.subheader("Generated Lab Report")
-        st.write(report_text)
-    except Exception as e:
-        st.error(f"Error generating report: {e}")
-
-        st.markdown(report_text)
-
-# PDF generation
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", "B", 16)
-        pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
-        pdf.set_font("Arial", "", 12)
-        pdf.multi_cell(0, 8, report_text)
-
-         # Add image safely to PDF
-        temp_img_path = "temp_image.jpg"
-        with open(temp_img_path, "wb") as f:
-               f.write(uploaded_file.getbuffer())
-               pdf.image(temp_img_path, x=10, y=None, w=100)
-           
-               pdf_bytes = pdf.output(dest='S').encode('latin-1')
-               st.download_button(
-               "📥 Download PDF",
-               data=pdf_bytes,
-               file_name="lab_report.pdf",
-               mime="application/pdf"
-          )
-
-
+# ==========================
+# FOOTER
+# ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
