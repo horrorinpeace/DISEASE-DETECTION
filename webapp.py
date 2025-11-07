@@ -176,10 +176,7 @@ elif page == "Detection Panel":
         st.warning("Waiting for ESP32 data from ThingSpeak...")
 
     # ==========================
-    # LAB REPORT GENERATION (FIXED FOR H2O GPT)
-    # ==========================
-    # ==========================
-# LAB REPORT GENERATION (ON-PAGE AI OUTPUT)
+# LAB REPORT GENERATION (reliable on-page)
 # ==========================
 st.subheader("🧾 Generate AI Lab Report")
 
@@ -189,67 +186,55 @@ if st.button("Generate Lab Report"):
     elif model is None:
         st.error("AI model not loaded.")
     else:
-        st.info("🧠 Generating AI-based lab report...")
+        st.info("🧠 Generating AI-based lab report... please wait a few seconds.")
 
-        # Create a context-rich prompt using the data we have
+        # Build the text prompt
         prompt = f"""
-        You are an expert agricultural scientist.
-        Analyze the following plant disease detection and sensor data, 
-        then write a short professional lab report with practical recommendations.
-
-        Detected Disease: {predicted_class}
-        Confidence: {confidence * 100:.2f}%
-        Sensor Data:
+        You are an agricultural scientist.
+        Create a concise lab report with recommendations based on:
+        - Detected disease: {predicted_class} (confidence {confidence*100:.2f}%)
         - Temperature: {sensor['temperature']} °C
         - Humidity: {sensor['humidity']} %
-        - Soil Moisture: {sensor['soil_moisture']} %
-
-        Include sections:
-        1. Diagnosis Summary
-        2. Environmental Observations
-        3. Recommended Actions
-        4. Preventive Measures
-
-        Keep it clear, factual, and under 200 words.
+        - Soil moisture: {sensor['soil_moisture']} %
+        Include sections: Diagnosis, Observations, Recommended Actions, Preventive Measures.
         """
 
         try:
-            from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
             import torch
+            from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
-            # Use a small efficient model
-            MODEL_NAME = "distilgpt2"  # or "distilgpt2" if RAM is limited
+            # 👉 small model that always runs (CPU-friendly)
+            MODEL_NAME = "distilgpt2"
 
             @st.cache_resource
-            def load_small_llm():
+            def load_small_model():
                 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-                model = AutoModelForCausalLM.from_pretrained(
-                    MODEL_NAME,
-                    device_map="auto",
-                    torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32
-                )
+                model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
                 generator = pipeline(
                     "text-generation",
                     model=model,
                     tokenizer=tokenizer,
-                    max_new_tokens=500,
-                    temperature=0.7,
-                    do_sample=True
+                    max_new_tokens=250,
+                    temperature=0.8,
+                    do_sample=True,
+                    device=-1   # force CPU, avoids CUDA issues
                 )
                 return generator
 
-            generator = load_small_llm()
+            generator = load_small_model()
 
-            st.info("🔬 Analyzing results and generating report...")
             output = generator(prompt, num_return_sequences=1)
-            report_text = output[0]["generated_text"]
+            report_text = output[0].get("generated_text", "").strip()
 
-            # Display report nicely
-            st.markdown("### 🧾 AI Lab Report")
-            st.markdown(report_text)
+            if not report_text:
+                st.warning("Model returned empty text.")
+            else:
+                st.markdown("### 🧾 AI Lab Report")
+                st.write(report_text)
 
         except Exception as e:
             st.error(f"GPT Error: {e}")
+
             st.warning("Could not generate report. Please check your model or environment.")
 
             st.markdown(report_text)
@@ -283,6 +268,7 @@ if st.button("Generate Lab Report"):
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
