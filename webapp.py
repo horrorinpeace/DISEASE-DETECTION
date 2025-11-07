@@ -210,10 +210,10 @@ elif page == "Detection Panel":
 
                 report_text = response.choices[0].message.content
 
-except Exception as e:
-    st.error(f"GPT Error: {e}")
-    report_text = "Could not generate report."
-            st.markdown(report_text)
+            except Exception as e:
+                 st.error(f"GPT Error: {e}")
+                 report_text = "Could not generate report."
+                 st.markdown(report_text)
 
             # PDF generation
             pdf = FPDF()
@@ -240,6 +240,7 @@ except Exception as e:
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
