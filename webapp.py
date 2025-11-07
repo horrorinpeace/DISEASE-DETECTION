@@ -180,8 +180,8 @@ elif page == "Detection Panel":
     else:
         st.warning("Waiting for ESP32 data from ThingSpeak...")
 
-    # ==========================
-    # LAB REPORT GENERATION
+     # ==========================
+    # LAB REPORT GENERATION (H2O GPT)
     # ==========================
     st.subheader("🧾 Generate Lab Report")
 
@@ -191,7 +191,7 @@ elif page == "Detection Panel":
         elif model is None:
             st.error("AI model not loaded.")
         else:
-            st.info("Generating lab report via GPT...")
+            st.info("Generating lab report via H2O GPT...")
 
             prompt = f"""
             Create a concise lab report using:
@@ -202,30 +202,57 @@ elif page == "Detection Panel":
             """
 
             try:
-                from openai import OpenAI
-                client = OpenAI(
-                    api_key="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",
-                    project="proj_aWIZcOZakna1gwent6CATWJ1"
-                )
+                import json
 
-                response = client.chat.completions.create(
-                    model="gpt-5",  # or "gpt-4-turbo"
-                    messages=[
+                API_URL = "https://h2ogpte.genai.h2o.ai/v1/chat/completions"
+                API_KEY = st.secrets.get("H2O_API_KEY", "sk-pyFocpFpUvuLzV4MKWcub0dAspeMnmAmbIHwhQenDwhWtDpx")
+
+                headers = {
+                    "Authorization": f"Bearer {API_KEY}",
+                    "Content-Type": "application/json",
+                }
+
+                payload = {
+                    "model": "h2ogpt-7b-chat",
+                    "messages": [
                         {"role": "system", "content": "You are a scientific report writer."},
                         {"role": "user", "content": prompt}
                     ],
-                    max_tokens=800
-                )
+                    "max_tokens": 800,
+                    "temperature": 0.7
+                }
 
-                report_text = response.choices[0].message.content
+                response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
+
+                # ✅ Check for empty or invalid JSON responses
+                if response.status_code != 200:
+                    st.error(f"⚠️ H2O GPT API returned {response.status_code}: {response.text}")
+                    report_text = "Could not generate report. Check API key or server."
+                else:
+                    try:
+                        result = response.json()
+                        if "choices" in result and len(result["choices"]) > 0:
+                            report_text = result["choices"][0]["message"]["content"]
+                        elif "text" in result:
+                            report_text = result["text"]
+                        else:
+                            report_text = "⚠️ No content received from H2O GPT."
+                    except json.JSONDecodeError:
+                        st.error(f"⚠️ Invalid JSON from H2O GPT: {response.text[:500]}")
+                        report_text = "Could not parse H2O GPT response."
 
             except Exception as e:
-                st.error(f"GPT Error: {e}")
+                st.error(f"H2O GPT API Error: {e}")
                 report_text = "Could not generate report."
 
+            # Display report in Markdown format
+            st.success("✅ Report generated successfully!")
+            st.markdown("### 🧠 Generated Lab Report")
             st.markdown(report_text)
 
-            # PDF generation
+            # ==========================
+            # PDF GENERATION
+            # ==========================
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", "B", 16)
@@ -233,7 +260,7 @@ elif page == "Detection Panel":
             pdf.set_font("Arial", "", 12)
             pdf.multi_cell(0, 8, report_text)
 
-            # Add image safely to PDF
+            # Add image to PDF
             temp_img_path = "temp_image.jpg"
             with open(temp_img_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
@@ -253,3 +280,4 @@ elif page == "Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
