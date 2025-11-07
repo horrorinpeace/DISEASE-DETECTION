@@ -138,12 +138,6 @@ elif page == "Detection Panel":
             preds = model.predict(img_array)
             confidence = np.max(preds)
             predicted_class = CLASS_NAMES[np.argmax(preds)]
-            st.write("### Debug Info")
-            st.write("CLASS_NAMES length:", len(CLASS_NAMES))
-            st.write("CLASS_NAMES:", CLASS_NAMES)
-            st.write("Predictions shape:", preds.shape)
-            st.write("Predictions array:", preds)
-
             df_results = pd.DataFrame({
                 "Disease": CLASS_NAMES,
                 "Probability": preds[0]
@@ -215,6 +209,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
