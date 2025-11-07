@@ -6,7 +6,6 @@ from PIL import Image
 import streamlit as st
 import requests
 from fpdf import FPDF
-import openai
 from huggingface_hub import hf_hub_download
 from flask import Flask, request, jsonify
 import tensorflow as tf
@@ -49,11 +48,6 @@ def set_background(url):
 set_background("https://images.unsplash.com/photo-1503264116251-35a269479413?auto=format&fit=crop&w=1200&q=80")
 
 # ==========================
-# OPENAI CONFIG
-# ==========================
-openai.api_key = st.secrets.get("OPENAI_API_KEY", "sk-yourkeyhere")
-
-# ==========================
 # LOAD MODEL
 # ==========================
 model_path = hf_hub_download(
@@ -86,8 +80,8 @@ except Exception as e:
 # ==========================
 # THINGSPEAK CONFIG
 # ==========================
-THINGSPEAK_CHANNEL_ID = "3152731"  # ← Replace with your ThingSpeak Channel ID
-READ_API_KEY = "8WGWK6AUAF74H6DJ"  # ← Replace with your ThingSpeak Read API Key
+THINGSPEAK_CHANNEL_ID = "3152731"  
+READ_API_KEY = "8WGWK6AUAF74H6DJ"  
 
 def fetch_sensor_data():
     url = f"https://api.thingspeak.com/channels/{THINGSPEAK_CHANNEL_ID}/feeds.json?api_key={READ_API_KEY}&results=1"
@@ -134,16 +128,11 @@ elif page == "Detection Panel":
     if uploaded_file is None:
         uploaded_file = st.file_uploader("Or upload an image", type=["png", "jpg", "jpeg"])
 
-    # ==========================
-    # MODEL PREDICTION
-    # ==========================
     if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
         st.image(image, caption="Captured / Uploaded Image")
 
         if model:
-            from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
-
             img_resized = image.resize((224, 224))
             img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
             img_array = np.expand_dims(img_array, axis=0)
@@ -162,9 +151,6 @@ elif page == "Detection Panel":
         else:
             st.error("No model loaded. Please ensure the model file is available.")
 
-    # ==========================
-    # SENSOR DATA (TEXT-ONLY)
-    # ==========================
     st.subheader("📡 Live Sensor Data")
     from streamlit_autorefresh import st_autorefresh
     st_autorefresh(interval=10000, key="sensor_refresh")
@@ -180,8 +166,8 @@ elif page == "Detection Panel":
     else:
         st.warning("Waiting for ESP32 data from ThingSpeak...")
 
-     # ==========================
-    # LAB REPORT GENERATION (H2O GPT)
+    # ==========================
+    # LAB REPORT GENERATION (FIXED FOR H2O GPT)
     # ==========================
     st.subheader("🧾 Generate Lab Report")
 
@@ -191,7 +177,7 @@ elif page == "Detection Panel":
         elif model is None:
             st.error("AI model not loaded.")
         else:
-            st.info("Generating lab report via H2O GPT...")
+            st.info("Generating lab report via GPT...")
 
             prompt = f"""
             Create a concise lab report using:
@@ -202,57 +188,32 @@ elif page == "Detection Panel":
             """
 
             try:
-                import json
+                # ✅ Use Hugging Face H2O GPT API (JSON Safe)
+                HF_API_URL = "https://api-inference.huggingface.co/models/h2oai/h2ogpt-7b"
+                HF_TOKEN = st.secrets.get("HF_API_KEY", "your_huggingface_token_here")
 
-                API_URL = "https://h2ogpte.genai.h2o.ai/v1/chat/completions"
-                API_KEY = st.secrets.get("H2O_API_KEY", "sk-pyFocpFpUvuLzV4MKWcub0dAspeMnmAmbIHwhQenDwhWtDpx")
+                headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+                payload = {"inputs": prompt}
 
-                headers = {
-                    "Authorization": f"Bearer {API_KEY}",
-                    "Content-Type": "application/json",
-                }
+                response = requests.post(HF_API_URL, headers=headers, json=payload, timeout=60)
 
-                payload = {
-                    "model": "h2ogpt-7b-chat",
-                    "messages": [
-                        {"role": "system", "content": "You are a scientific report writer."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    "max_tokens": 800,
-                    "temperature": 0.7
-                }
-
-                response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
-
-                # ✅ Check for empty or invalid JSON responses
                 if response.status_code != 200:
-                    st.error(f"⚠️ H2O GPT API returned {response.status_code}: {response.text}")
-                    report_text = "Could not generate report. Check API key or server."
+                    st.error(f"⚠️ API error {response.status_code}: {response.text}")
+                    report_text = "Could not generate report."
                 else:
-                    try:
-                        result = response.json()
-                        if "choices" in result and len(result["choices"]) > 0:
-                            report_text = result["choices"][0]["message"]["content"]
-                        elif "text" in result:
-                            report_text = result["text"]
-                        else:
-                            report_text = "⚠️ No content received from H2O GPT."
-                    except json.JSONDecodeError:
-                        st.error(f"⚠️ Invalid JSON from H2O GPT: {response.text[:500]}")
-                        report_text = "Could not parse H2O GPT response."
+                    data = response.json()
+                    if isinstance(data, list) and len(data) > 0 and "generated_text" in data[0]:
+                        report_text = data[0]["generated_text"]
+                    else:
+                        report_text = str(data)
 
             except Exception as e:
-                st.error(f"H2O GPT API Error: {e}")
+                st.error(f"GPT Error: {e}")
                 report_text = "Could not generate report."
 
-            # Display report in Markdown format
-            st.success("✅ Report generated successfully!")
-            st.markdown("### 🧠 Generated Lab Report")
             st.markdown(report_text)
 
-            # ==========================
-            # PDF GENERATION
-            # ==========================
+            # PDF generation
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", "B", 16)
@@ -260,7 +221,6 @@ elif page == "Detection Panel":
             pdf.set_font("Arial", "", 12)
             pdf.multi_cell(0, 8, report_text)
 
-            # Add image to PDF
             temp_img_path = "temp_image.jpg"
             with open(temp_img_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
@@ -280,4 +240,3 @@ elif page == "Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
-
