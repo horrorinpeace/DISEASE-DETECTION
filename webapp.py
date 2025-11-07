@@ -280,7 +280,7 @@ if st.button("Generate Report"):
     except Exception as e:
         st.error(f"Error generating report: {e}")
 
-  st.markdown(report_text)
+      st.markdown(report_text)
 
             # PDF generation
             pdf = FPDF()
@@ -307,6 +307,7 @@ if st.button("Generate Report"):
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
