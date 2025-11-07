@@ -199,11 +199,11 @@ elif page == "Detection Panel":
                 from openai import OpenAI
                 client = OpenAI(api_key=openai.api_key)
 
-                  response = client.chat.completions.create(
-                     model="gpt-4o-mini",  # or "gpt-4-turbo"
-                  messages=[
-                  {"role": "system", "content": "You are a scientific report writer."},
-                  {"role": "user", "content": prompt}
+                response = client.chat.completions.create(
+                model="gpt-4o-mini",  # or "gpt-4-turbo"
+                 messages=[
+                {"role": "system", "content": "You are a scientific report writer."},
+                 {"role": "user", "content": prompt}
                 ],
                 max_tokens=800
                )
@@ -242,6 +242,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
