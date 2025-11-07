@@ -160,7 +160,7 @@ elif page == "Detection Panel":
     # ==========================
     # SENSOR DATA (TEXT-ONLY)
     # ==========================
-    st.subheader("📡 Live Sensor Data (ThingSpeak)")
+    st.subheader("📡 Live Sensor Data ")
     sensor = fetch_sensor_data()
 
     if sensor["temperature"] is not None:
@@ -227,6 +227,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
