@@ -190,7 +190,7 @@ elif page == "Detection Panel":
             try:
                 # ✅ Use Hugging Face H2O GPT API (JSON Safe)
                 HF_API_URL = "https://router.huggingface.co/hf-inference/models/h2oai/h2ogpt-7b"
-                HF_TOKEN = st.secrets.get("HF_API_KEY", "your_huggingface_token_here")
+                HF_TOKEN = st.secrets.get("HF_API_KEY", "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")
 
                 headers = {"Authorization": f"Bearer {HF_TOKEN}"}
                 payload = {"inputs": prompt}
@@ -240,4 +240,5 @@ elif page == "Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
