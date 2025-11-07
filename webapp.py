@@ -153,7 +153,7 @@ elif page == "Detection Panel":
 
     if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="Captured / Uploaded Image", use_column_width=True)
+        st.image(image, caption="Captured / Uploaded Image")
 
         # ==========================
         # MODEL PREDICTION
@@ -173,6 +173,9 @@ elif page == "Detection Panel":
                 "Disease": CLASS_NAMES,
                 "Probability": preds[0]
             }).sort_values(by="Probability", ascending=False)
+               print("CLASS_NAMES length:", len(CLASS_NAMES))
+             print("Predictions length:", len(preds[0]))
+
 
             st.success(f"✅ Prediction: **{predicted_class}** ({confidence*100:.2f}% confidence)")
             st.table(df_results)
@@ -241,6 +244,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
