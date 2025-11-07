@@ -189,34 +189,43 @@ if st.button("Generate Lab Report"):
 
         import subprocess, json, shlex
 
-        def generate_via_subprocess(prompt_text, timeout=600):
-            import sys
-            cmd = [sys.executable, "worker_infer.py"]
+def generate_via_subprocess(prompt_text, timeout=600):
+    import subprocess, json, sys
+    cmd = [sys.executable, "worker_infer.py"]
+    try:
+        proc = subprocess.run(
+            cmd,
+            input=prompt_text.encode("utf-8"),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout,
+        )
 
-            try:
-                proc = subprocess.run(
-                    cmd,
-                    input=prompt_text.encode("utf-8"),
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    timeout=timeout,
-                )
-                print("STDERR:", proc.stderr.decode())
-                if proc.returncode != 0:
-                    st.error(f"Inference worker failed: {proc.stderr.decode()[:300]}")
-                    return None
-                out = json.loads(proc.stdout.decode())
-                if out.get("ok"):
-                    return out["text"]
-                else:
-                    st.error(f"Inference error: {out.get('error')}")
-                    return None
-            except subprocess.TimeoutExpired:
-                st.error("GPT generation timed out. Try shorter input.")
-                return None
-            except Exception as e:
-                st.error(f"Unexpected GPT error: {e}")
-                return None
+        stderr_text = proc.stderr.decode().strip()
+
+        # 👇 display the worker's stderr directly on the Streamlit app
+        if proc.returncode != 0:
+            st.error("❌ Inference worker failed:")
+            if stderr_text:
+                st.code(stderr_text, language="bash")
+            else:
+                st.warning("Worker exited without any error output.")
+            return None
+
+        out = json.loads(proc.stdout.decode())
+        if out.get("ok"):
+            return out["text"]
+        else:
+            st.error(f"Inference error: {out.get('error')}")
+            return None
+
+    except subprocess.TimeoutExpired:
+        st.error("GPT generation timed out. Try shorter input.")
+        return None
+    except Exception as e:
+        st.error(f"Unexpected GPT error: {e}")
+        return None
+
 
         report_text = generate_via_subprocess(prompt)
 
