@@ -195,27 +195,11 @@ elif page == "Detection Panel":
             Sample Analysis, Sensor Data, Observations, Conclusion.
             """
 try:
-    import os
-    import requests
-    import streamlit as st
-
-    # ==========================
-    # H2O GPT CONFIG
-    # ==========================
     API_URL = "https://h2ogpte.genai.h2o.ai/v1/chat/completions"
-    API_KEY = os.getenv("H2O_API_KEY", "sk-9pb9xPIqYtUdxj9hzXL60buZOpoqsXS06S8ud0meEDxUpnGy")  # or st.secrets["H2O_API_KEY"]
+    API_KEY = st.secrets.get("H2O_API_KEY", "your_api_key_here")
 
     def h2ogpte_chat(prompt: str, model: str = "h2ogpt-7b-chat") -> str:
-        """
-        Send a prompt to the H2O GPT API and return the generated text.
-
-        Args:
-            prompt (str): The input text or instructions for the model.
-            model (str): The model name (default: h2ogpt-7b-chat).
-
-        Returns:
-            str: The generated response text or an error message.
-        """
+        """Send a prompt to H2O GPT API and return generated text."""
         payload = {
             "model": model,
             "messages": [
@@ -225,25 +209,17 @@ try:
             "max_tokens": 800,
             "temperature": 0.7,
         }
-
-        headers = {
-            "Authorization": f"Bearer {API_KEY}",
-            "Content-Type": "application/json",
-        }
-
+        headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
         try:
             response = requests.post(API_URL, json=payload, headers=headers, timeout=60)
             response.raise_for_status()
             result = response.json()
-
-            # Parse safely
             if "choices" in result and len(result["choices"]) > 0:
                 return result["choices"][0]["message"]["content"]
             elif "text" in result:
                 return result["text"]
             else:
                 return "No response received from H2O GPT."
-
         except Exception as e:
             st.error(f"H2O GPT API Error: {e}")
             return "Could not generate report."
@@ -307,6 +283,7 @@ if st.button("Generate Report"):
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
