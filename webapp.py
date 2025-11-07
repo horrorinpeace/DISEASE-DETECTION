@@ -229,17 +229,18 @@ elif page == "Detection Panel":
                 f.write(uploaded_file.getbuffer())
             pdf.image(temp_img_path, x=10, y=None, w=100)
            
-            pdf_bytes = io.BytesIO()
-            pdf.output(pdf_bytes)
-            pdf_bytes.seek(0)
-            st.download_button("📥 Download PDF", pdf_bytes, "lab_report.pdf")
-            import os
-            if os.path.exists(temp_img_path):
-               os.remove(temp_img_path)
+            pdf_bytes = pdf.output(dest='S').encode('latin-1')
+            st.download_button(
+            "📥 Download PDF",
+              data=pdf_bytes,
+              file_name="lab_report.pdf",
+              mime="application/pdf"
+               )
 
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
