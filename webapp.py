@@ -201,6 +201,7 @@ if st.button("Generate Lab Report"):
                     stderr=subprocess.PIPE,
                     timeout=timeout,
                 )
+                print("STDERR:", proc.stderr.decode())
                 if proc.returncode != 0:
                     st.error(f"Inference worker failed: {proc.stderr.decode()[:300]}")
                     return None
@@ -254,6 +255,7 @@ if st.button("Generate Lab Report"):
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
