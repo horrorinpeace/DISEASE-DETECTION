@@ -197,7 +197,7 @@ elif page == "Detection Panel":
 
             try:
                 from openai import OpenAI
-                     client = OpenAI(api_key=openai.api_key)
+                client = OpenAI(api_key=openai.api_key)
 
                   response = client.chat.completions.create(
                      model="gpt-4o-mini",  # or "gpt-4-turbo"
@@ -242,6 +242,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
