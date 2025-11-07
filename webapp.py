@@ -6,7 +6,7 @@ from PIL import Image
 import streamlit as st
 import requests
 from fpdf import FPDF
-from huggingfaimport io
+from huggingface_hub import io
 import threading
 import numpy as np
 import pandas as pd
@@ -519,6 +519,7 @@ def generate_via_subprocess(prompt_text, timeout=600):
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
