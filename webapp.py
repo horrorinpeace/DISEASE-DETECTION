@@ -194,45 +194,72 @@ elif page == "Detection Panel":
             Format as structured tables under headings: 
             Sample Analysis, Sensor Data, Observations, Conclusion.
             """
+try:
+   import requests
+   import os
+   import streamlit as st
 
-            try:
-                import requests
-                import os
+    # H2O GPT endpoint and API key
+    API_URL = "https://h2ogpte.genai.h2o.ai/v1/chat/completions"
+    API_KEY = os.getenv("H2O_API_KEY", "your_api_key_here")
 
-                API_URL = "https://h2ogpte.genai.h2o.ai/v1/chat/completions"
-                API_KEY = os.getenv("H2O_API_KEY", "your_api_key_here")
 
-                def h2ogpte_chat(prompt: str, model: str = "h2ogpt-7b-chat") -> str:
-                 payload = {
-                "model": model,
-                "messages": [
-                 {"role": "system", "content": "You are a scientific report writer."},
-                {"role": "user",   "content": prompt}
-                ],
-                "max_tokens": 800,
-                 "temperature": 0.7
-                 }
-                 headers = {
-                 "Authorization": f"Bearer {API_KEY}",
-                 "Content-Type": "application/json"
-                 }
-                 resp = requests.post(API_URL, json=payload, headers=headers, timeout=60)
-                 resp.raise_for_status()
-                 result = resp.json()
-                 # depending on API shape, adapt:
-                 return result["choices"][0]["message"]["content"]
+    def h2ogpte_chat(prompt: str, model: str = "h2ogpt-7b-chat") -> str:
+      """Send a prompt to H2O GPT API and return the generated text."""
 
-                # Usage inside your Streamlit logic:
-                prompt = f"""Create a concise lab report using:
-                Detection Results: {df_results.to_dict(orient='records')}
-                Sensor Data: {sensor}
-                Format as structured tables under headings:
-                Sample Analysis, Sensor Data, Observations, Conclusion."""
-                try:
-                  report_text = h2ogpte_chat(prompt)
-                  except Exception as e:
-                   st.error(f"H2O GPT Error: {e}")
-                    report_text = "Could not generate report."
+     payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "You are a scientific report writer."},
+            {"role": "user", "content": prompt},
+        ],
+        "max_tokens": 800,
+        "temperature": 0.7,
+       }
+    
+      headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json",
+      }
+
+    try:
+        resp = requests.post(API_URL, json=payload, headers=headers, timeout=60)
+        resp.raise_for_status()
+        result = resp.json()
+        return result["choices"][0]["message"]["content"]
+  except Exception as e:
+        st.error(f"H2O GPT API Error: {e}")
+        return "Could not generate report."
+
+
+# Example usage inside Streamlit
+def generate_lab_report(df_results, sensor):
+    """Generate a structured lab report using H2O GPT."""
+
+    prompt = f"""
+    Create a concise lab report using:
+    Detection Results: {df_results.to_dict(orient='records')}
+    Sensor Data: {sensor}
+
+    Format as structured tables under headings:
+    Sample Analysis, Sensor Data, Observations, Conclusion.
+    """
+
+    report_text = h2ogpte_chat(prompt)
+    return report_text
+
+
+# Example Streamlit UI
+st.title("Lab Report Generator")
+
+if st.button("Generate Report"):
+    try:
+        report_text = generate_lab_report(df_results, sensor)
+        st.subheader("Generated Lab Report")
+        st.write(report_text)
+    except Exception as e:
+        st.error(f"Error generating report: {e}")
+
 
                  st.markdown(report_text)
 
@@ -261,6 +288,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
