@@ -282,8 +282,8 @@ if st.button("Generate Report"):
 
         st.markdown(report_text)
 
-            # PDF generation
-            pdf = FPDF()
+# PDF generation
+ pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", "B", 16)
             pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
@@ -307,6 +307,7 @@ if st.button("Generate Report"):
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
