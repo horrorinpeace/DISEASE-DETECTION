@@ -195,7 +195,7 @@ elif page == "Detection Panel":
             Sample Analysis, Sensor Data, Observations, Conclusion.
             """
 
-                try:
+            try:
                 import requests
                 import os
 
@@ -261,6 +261,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
