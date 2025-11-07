@@ -1,12 +1,13 @@
-# webapp.py
-import streamlit as st
-from PIL import Image
-import pandas as pd
 import io
+import threading
+import numpy as np
+import pandas as pd
+from PIL import Image
+import streamlit as st
 from fpdf import FPDF
 import openai
-import threading
 from flask import Flask, request, jsonify
+import tensorflow as tf
 
 # ==========================
 # PAGE CONFIG
@@ -27,11 +28,9 @@ def set_background(url):
             background: url("{url}") no-repeat center center fixed;
             background-size: cover;
         }}
-        /* Remove white background from the main container */
         .block-container {{
             background-color: transparent !important;
         }}
-        /* Text styling: white text with black outline */
         body, p, div, span, h1, h2, h3, h4, h5, h6 {{
             color: white !important;
             text-shadow:
@@ -45,13 +44,61 @@ def set_background(url):
         unsafe_allow_html=True
     )
 
-
 set_background("https://images.unsplash.com/photo-1503264116251-35a269479413?auto=format&fit=crop&w=1200&q=80")
 
 # ==========================
 # OPENAI CONFIG
 # ==========================
 openai.api_key = st.secrets.get("OPENAI_API_KEY", "sk-yourkeyhere")
+
+# ==========================
+# LOAD MODEL
+# ==========================
+model_path = hf_hub_download(
+    repo_id="qwertymaninwork/Plant_Disease_Detection_System",  # your repo name
+    filename="mobilenetv2_plant.keras"
+@st.cache_resource
+def load_model():
+    model = tf.keras.models.load_model(model_path, compile=False, safe_mode=False)
+    return model
+
+try:
+    model = load_model()
+    CLASS_NAMES = 'HEALTHY RICE',
+                'RICE BACTERIAL BLIGHT',
+                'RICE BROWN SPOT',
+                'RICE LEAF SMUT',
+                'HEALTHY WHEAT',
+                'WHEAT LOOSE SMUT',
+                'WHEAT YELLOW RUST',
+                'WHEAT BROWN RUST',
+                'HEALTHY MILLET',
+                'MILLET RUST',
+                'MILLET BLAST',
+                'HEALTHY SUGARCANE',
+                'SUGARCANE YELLOW',
+                'SUGARCANE RED ROT',
+                'SUGARCANE RUST',
+                'HEALTHY TEA LEAF',
+                'TEA GREEN MIRID BUG',
+                'TEA GRAY BLIGHT',
+                'TEA HELOPELITIS',
+                'HEALTHY POTATO',
+                'POTATO EARLY BLIGHT',
+                'POTATO LATE BLIGHT',
+                'HEALTHY TOMATO',
+                'TOMATO LEAF MOLD',
+                'TOMATO MOSAIC VIRUS',
+                'TOMATO SEPTORIA LEAF SPOT',
+                'HEALTHY RICE',
+                'HEALTHY SUGARCANE',
+                'HEALTHY TEA LEAF',
+                'HEALTHY WHEAT',
+            ]
+except Exception as e:
+    st.warning(f"⚠️ Could not load model: {e}")
+    model = None
+    CLASS_NAMES = []
 
 # ==========================
 # SHARED SENSOR DATA
@@ -72,7 +119,6 @@ def receive_data():
 def run_flask():
     flask_app.run(host="0.0.0.0", port=8502, debug=False, use_reloader=False)
 
-# Run Flask in background thread
 threading.Thread(target=run_flask, daemon=True).start()
 
 # ==========================
@@ -89,7 +135,7 @@ if page == "About":
     st.markdown("""
     This application:
     - Accepts real sensor data directly from an ESP32 device  
-    - Processes images via AI  
+    - Uses your trained AI model for plant disease detection  
     - Generates GPT-based lab reports automatically  
     """)
 
@@ -104,17 +150,36 @@ elif page == "Detection Panel":
         uploaded_file = st.file_uploader("Or upload an image", type=["png", "jpg", "jpeg"])
 
     if uploaded_file:
-        uploaded_file.seek(0)
-        image = Image.open(uploaded_file)
+        image = Image.open(uploaded_file).convert("RGB")
         st.image(image, caption="Captured / Uploaded Image", use_container_width=True)
 
-        # Fake detection results
-        df_results = pd.DataFrame({
-            "Feature": ["Leaf Spot", "Discoloration", "Pest Damage"],
-            "Probability": [0.75, 0.20, 0.05]
-        })
-        st.table(df_results)
+        # ==========================
+        # MODEL PREDICTION
+        # ==========================
+        if model:
+            # Preprocess
+            img_resized = image.resize((224, 224))
+            img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
+            img_array = np.expand_dims(img_array, axis=0) / 255.0
 
+            # Predict
+            preds = model.predict(img_array)
+            confidence = np.max(preds)
+            predicted_class = CLASS_NAMES[np.argmax(preds)]
+
+            df_results = pd.DataFrame({
+                "Disease": CLASS_NAMES,
+                "Probability": preds[0]
+            }).sort_values(by="Probability", ascending=False)
+
+            st.success(f"✅ Prediction: **{predicted_class}** ({confidence*100:.2f}% confidence)")
+            st.table(df_results)
+        else:
+            st.error("No model loaded. Please ensure 'model.h5' exists in your project folder.")
+
+    # ==========================
+    # SENSOR DATA
+    # ==========================
     st.subheader("📡 Live Sensor Data from ESP32")
     if all(v is not None for v in shared_data.values()):
         df_sensor = pd.DataFrame([shared_data])
@@ -122,9 +187,14 @@ elif page == "Detection Panel":
     else:
         st.warning("Waiting for data from ESP32...")
 
+    # ==========================
+    # LAB REPORT GENERATION
+    # ==========================
     if st.button("Generate Lab Report"):
         if uploaded_file is None:
             st.error("Please upload or capture an image first.")
+        elif model is None:
+            st.error("AI model not loaded. Please check model file.")
         else:
             st.info("Generating lab report via GPT...")
 
@@ -151,12 +221,15 @@ elif page == "Detection Panel":
 
             st.markdown(report_text)
 
+            # PDF generation
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", "B", 16)
             pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
             pdf.set_font("Arial", "", 12)
             pdf.multi_cell(0, 8, report_text)
+
+            # Add image
             uploaded_file.seek(0)
             pdf.image(uploaded_file, x=10, y=None, w=100)
             pdf_bytes = io.BytesIO()
