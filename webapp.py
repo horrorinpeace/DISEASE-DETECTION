@@ -178,58 +178,79 @@ elif page == "Detection Panel":
     # ==========================
     # LAB REPORT GENERATION (FIXED FOR H2O GPT)
     # ==========================
-    st.subheader("🧾 Generate Lab Report")
+    # ==========================
+# LAB REPORT GENERATION (ON-PAGE AI OUTPUT)
+# ==========================
+st.subheader("🧾 Generate AI Lab Report")
 
-    if st.button("Generate Lab Report"):
-        if uploaded_file is None:
-            st.error("Please upload or capture an image first.")
-        elif model is None:
-            st.error("AI model not loaded.")
-        else:
-            st.info("Generating lab report via GPT...")
+if st.button("Generate Lab Report"):
+    if uploaded_file is None:
+        st.error("Please upload or capture an image first.")
+    elif model is None:
+        st.error("AI model not loaded.")
+    else:
+        st.info("🧠 Generating AI-based lab report...")
 
-            prompt = f"""
-            Create a concise lab report using:
-            Detection Results: {df_results.to_dict(orient='records')}
-            Sensor Data: {sensor}
-            Format as structured tables under headings:
-            Sample Analysis, Sensor Data, Observations, Conclusion.
-            """
+        # Create a context-rich prompt using the data we have
+        prompt = f"""
+        You are an expert agricultural scientist.
+        Analyze the following plant disease detection and sensor data, 
+        then write a short professional lab report with practical recommendations.
 
-            try:
-                # ✅ Local H2O GPT generation (offline model)
-                from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+        Detected Disease: {predicted_class}
+        Confidence: {confidence * 100:.2f}%
+        Sensor Data:
+        - Temperature: {sensor['temperature']} °C
+        - Humidity: {sensor['humidity']} %
+        - Soil Moisture: {sensor['soil_moisture']} %
 
-                MODEL_NAME = "h2oai/h2ogpt-4096-llama2-7b"
+        Include sections:
+        1. Diagnosis Summary
+        2. Environmental Observations
+        3. Recommended Actions
+        4. Preventive Measures
 
-                @st.cache_resource
-                def load_local_llm():
-                    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-                    model = AutoModelForCausalLM.from_pretrained(
-                        MODEL_NAME,
-                        torch_dtype="auto",
-                        device_map="auto"
-                    )
-                    generator = pipeline(
-                        "text-generation",
-                        model=model,
-                        tokenizer=tokenizer,
-                        max_new_tokens=800,
-                        temperature=0.7,
-                        do_sample=True
-                    )
-                    return generator
+        Keep it clear, factual, and under 200 words.
+        """
 
-                generator = load_local_llm()
+        try:
+            from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+            import torch
 
-                st.info("Generating report using local H2O GPT model...")
+            # Use a small efficient model
+            MODEL_NAME = "h2oai/h2ogpt-4096-llama2-1.3b"  # or "distilgpt2" if RAM is limited
 
-                output = generator(prompt, num_return_sequences=1)
-                report_text = output[0]["generated_text"]
+            @st.cache_resource
+            def load_small_llm():
+                tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+                model = AutoModelForCausalLM.from_pretrained(
+                    MODEL_NAME,
+                    device_map="auto",
+                    torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32
+                )
+                generator = pipeline(
+                    "text-generation",
+                    model=model,
+                    tokenizer=tokenizer,
+                    max_new_tokens=500,
+                    temperature=0.7,
+                    do_sample=True
+                )
+                return generator
 
-            except Exception as e:
-                st.error(f"GPT Error: {e}")
-                report_text = "Could not generate report."
+            generator = load_small_llm()
+
+            st.info("🔬 Analyzing results and generating report...")
+            output = generator(prompt, num_return_sequences=1)
+            report_text = output[0]["generated_text"]
+
+            # Display report nicely
+            st.markdown("### 🧾 AI Lab Report")
+            st.markdown(report_text)
+
+        except Exception as e:
+            st.error(f"GPT Error: {e}")
+            st.warning("Could not generate report. Please check your model or environment.")
 
             st.markdown(report_text)
 
@@ -262,4 +283,5 @@ elif page == "Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
