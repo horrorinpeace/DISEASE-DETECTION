@@ -80,8 +80,8 @@ except Exception as e:
 # ==========================
 # THINGSPEAK CONFIG
 # ==========================
-THINGSPEAK_CHANNEL_ID = "3152731"  
-READ_API_KEY = "8WGWK6AUAF74H6DJ"  
+THINGSPEAK_CHANNEL_ID = "3152731"
+READ_API_KEY = "8WGWK6AUAF74H6DJ"
 
 def fetch_sensor_data():
     url = f"https://api.thingspeak.com/channels/{THINGSPEAK_CHANNEL_ID}/feeds.json?api_key={READ_API_KEY}&results=1"
@@ -188,24 +188,35 @@ elif page == "Detection Panel":
             """
 
             try:
-                # ✅ Use Hugging Face H2O GPT API (JSON Safe)
-                AI_URL = "https://h2ogpte.genai.h2o.ai/"
-                AI_TOKEN = st.secrets.get("API_KEY", "sk-NijDD87ESa2ObYZf3M104m6LZsNYnglFc3AUUFp7S7XlD2ic")
+                # ✅ Local H2O GPT generation (offline model)
+                from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
-                headers = {"Authorization": f"Bearer {AI_TOKEN}"}
-                payload = {"inputs": prompt}
+                MODEL_NAME = "h2oai/h2ogpt-4096-llama2-7b"
 
-                response = requests.post(AI_URL, headers=headers, json=payload, timeout=60)
+                @st.cache_resource
+                def load_local_llm():
+                    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+                    model = AutoModelForCausalLM.from_pretrained(
+                        MODEL_NAME,
+                        torch_dtype="auto",
+                        device_map="auto"
+                    )
+                    generator = pipeline(
+                        "text-generation",
+                        model=model,
+                        tokenizer=tokenizer,
+                        max_new_tokens=800,
+                        temperature=0.7,
+                        do_sample=True
+                    )
+                    return generator
 
-                if response.status_code != 200:
-                    st.error(f"⚠️ API error {response.status_code}: {response.text}")
-                    report_text = "Could not generate report."
-                else:
-                    data = response.json()
-                    if isinstance(data, list) and len(data) > 0 and "generated_text" in data[0]:
-                        report_text = data[0]["generated_text"]
-                    else:
-                        report_text = str(data)
+                generator = load_local_llm()
+
+                st.info("Generating report using local H2O GPT model...")
+
+                output = generator(prompt, num_return_sequences=1)
+                report_text = output[0]["generated_text"]
 
             except Exception as e:
                 st.error(f"GPT Error: {e}")
@@ -213,7 +224,9 @@ elif page == "Detection Panel":
 
             st.markdown(report_text)
 
-            # PDF generation
+            # ==========================
+            # PDF GENERATION
+            # ==========================
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", "B", 16)
@@ -240,6 +253,7 @@ elif page == "Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
