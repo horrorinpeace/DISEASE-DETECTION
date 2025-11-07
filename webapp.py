@@ -218,7 +218,7 @@ if st.button("Generate Lab Report"):
             import torch
 
             # Use a small efficient model
-            MODEL_NAME = "h2oai/h2ogpt-4096-llama2-1.3b"  # or "distilgpt2" if RAM is limited
+            MODEL_NAME = "distilgpt2"  # or "distilgpt2" if RAM is limited
 
             @st.cache_resource
             def load_small_llm():
@@ -283,5 +283,6 @@ if st.button("Generate Lab Report"):
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
