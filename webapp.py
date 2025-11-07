@@ -166,90 +166,90 @@ elif page == "Detection Panel":
     else:
         st.warning("Waiting for ESP32 data from ThingSpeak...")
 
-    # ==========================
-    # LAB REPORT GENERATION (FIXED FOR H2O GPT)
-    # ==========================
-    st.subheader("🧾 Generate Lab Report")
+# ==========================
+# LAB REPORT GENERATION (SAFE SUBPROCESS)
+# ==========================
+st.subheader("🧾 Generate Lab Report")
 
-    if st.button("Generate Lab Report"):
-        if uploaded_file is None:
-            st.error("Please upload or capture an image first.")
-        elif model is None:
-            st.error("AI model not loaded.")
-        else:
-            st.info("Generating lab report via GPT...")
+if st.button("Generate Lab Report"):
+    if uploaded_file is None:
+        st.error("Please upload or capture an image first.")
+    elif model is None:
+        st.error("AI model not loaded.")
+    else:
+        st.info("Generating lab report via GPT...")
 
-            prompt = f"""
-            Create a concise lab report using:
-            Detection Results: {df_results.to_dict(orient='records')}
-            Sensor Data: {sensor}
-            Format as structured tables under headings:
-            Sample Analysis, Sensor Data, Observations, Conclusion.
-            """
+        prompt = f"""
+        Create a concise lab report using:
+        Detection Results: {df_results.to_dict(orient='records')}
+        Sensor Data: {sensor}
+        Format as structured tables under headings:
+        Sample Analysis, Sensor Data, Observations, Conclusion.
+        """
 
+        import subprocess, json, shlex
+
+        def generate_via_subprocess(prompt_text, timeout=600):
+            cmd = ["python", "worker_infer.py"]
             try:
-                # ✅ Local H2O GPT generation (offline model)
-                from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
-
-                MODEL_NAME = "h2oai/h2ogpt-4096-llama2-7b"
-
-                @st.cache_resource
-                def load_local_llm():
-                    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-                    model = AutoModelForCausalLM.from_pretrained(
-                        MODEL_NAME,
-                        torch_dtype="auto",
-                        device_map="auto"
-                    )
-                    generator = pipeline(
-                        "text-generation",
-                        model=model,
-                        tokenizer=tokenizer,
-                        max_new_tokens=800,
-                        temperature=0.7,
-                        do_sample=True
-                    )
-                    return generator
-
-                generator = load_local_llm()
-
-                st.info("Generating report using local H2O GPT model...")
-
-                output = generator(prompt, num_return_sequences=1)
-                report_text = output[0]["generated_text"]
-
+                proc = subprocess.run(
+                    cmd,
+                    input=prompt_text.encode("utf-8"),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=timeout,
+                )
+                if proc.returncode != 0:
+                    st.error(f"Inference worker failed: {proc.stderr.decode()[:300]}")
+                    return None
+                out = json.loads(proc.stdout.decode())
+                if out.get("ok"):
+                    return out["text"]
+                else:
+                    st.error(f"Inference error: {out.get('error')}")
+                    return None
+            except subprocess.TimeoutExpired:
+                st.error("GPT generation timed out. Try shorter input.")
+                return None
             except Exception as e:
-                st.error(f"GPT Error: {e}")
-                report_text = "Could not generate report."
+                st.error(f"Unexpected GPT error: {e}")
+                return None
 
-            st.markdown(report_text)
+        report_text = generate_via_subprocess(prompt)
 
-            # ==========================
-            # PDF GENERATION
-            # ==========================
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", "B", 16)
-            pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
-            pdf.set_font("Arial", "", 12)
-            pdf.multi_cell(0, 8, report_text)
+        if not report_text:
+            report_text = "Could not generate report."
 
-            temp_img_path = "temp_image.jpg"
-            with open(temp_img_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
+        st.markdown(report_text)
 
-            pdf.image(temp_img_path, x=10, y=None, w=100)
-            pdf_bytes = pdf.output(dest='S').encode('latin-1')
+        # ==========================
+        # PDF GENERATION (unchanged)
+        # ==========================
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 16)
+        pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
+        pdf.set_font("Arial", "", 12)
+        pdf.multi_cell(0, 8, report_text)
 
-            st.download_button(
-                "📥 Download PDF",
-                data=pdf_bytes,
-                file_name="lab_report.pdf",
-                mime="application/pdf"
-            )
+        temp_img_path = "temp_image.jpg"
+        with open(temp_img_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+
+        pdf.image(temp_img_path, x=10, y=None, w=100)
+        pdf_bytes = pdf.output(dest='S').encode('latin-1')
+
+        st.download_button(
+            "📥 Download PDF",
+            data=pdf_bytes,
+            file_name="lab_report.pdf",
+            mime="application/pdf"
+        )
+
 
 # ==========================
 # FOOTER
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
