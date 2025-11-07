@@ -203,7 +203,7 @@ elif page == "Detection Panel":
                 API_KEY = os.getenv("H2O_API_KEY", "your_api_key_here")
 
                 def h2ogpte_chat(prompt: str, model: str = "h2ogpt-7b-chat") -> str:
-                payload = {
+                 payload = {
                 "model": model,
                 "messages": [
                  {"role": "system", "content": "You are a scientific report writer."},
@@ -261,6 +261,7 @@ try:
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
