@@ -286,13 +286,13 @@ if st.button("Generate Report"):
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", "B", 16)
-         pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
-         pdf.set_font("Arial", "", 12)
-         pdf.multi_cell(0, 8, report_text)
+        pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
+        pdf.set_font("Arial", "", 12)
+        pdf.multi_cell(0, 8, report_text)
 
          # Add image safely to PDF
         temp_img_path = "temp_image.jpg"
-           with open(temp_img_path, "wb") as f:
+        with open(temp_img_path, "wb") as f:
                f.write(uploaded_file.getbuffer())
               pdf.image(temp_img_path, x=10, y=None, w=100)
            
@@ -307,6 +307,7 @@ if st.button("Generate Report"):
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
