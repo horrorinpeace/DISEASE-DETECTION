@@ -190,7 +190,9 @@ if st.button("Generate Lab Report"):
         import subprocess, json, shlex
 
         def generate_via_subprocess(prompt_text, timeout=600):
-            cmd = ["python", "worker_infer.py"]
+            import sys
+            cmd = [sys.executable, "worker_infer.py"]
+]
             try:
                 proc = subprocess.run(
                     cmd,
@@ -252,4 +254,5 @@ if st.button("Generate Lab Report"):
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
