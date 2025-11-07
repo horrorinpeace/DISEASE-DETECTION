@@ -226,7 +226,7 @@ elif page == "Detection Panel":
             # Add image safely to PDF
             temp_img_path = "temp_image.jpg"
             with open(temp_img_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+                f.write(uploaded_file.getbuffer())
             pdf.image(temp_img_path, x=10, y=None, w=100)
            
             pdf_bytes = io.BytesIO()
@@ -235,11 +235,12 @@ elif page == "Detection Panel":
             st.download_button("📥 Download PDF", pdf_bytes, "lab_report.pdf")
             import os
             if os.path.exists(temp_img_path):
-            os.remove(temp_img_path)
+               os.remove(temp_img_path)
 
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
