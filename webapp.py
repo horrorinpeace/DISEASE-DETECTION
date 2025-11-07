@@ -196,13 +196,19 @@ elif page == "Detection Panel":
             """
 
             try:
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": "You are a scientific report writer."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    max_tokens=800
+                from openai import OpenAI
+                     client = OpenAI(api_key=openai.api_key)
+
+                  response = client.chat.completions.create(
+                     model="gpt-4o-mini",  # or "gpt-4-turbo"
+                  messages=[
+                  {"role": "system", "content": "You are a scientific report writer."},
+                  {"role": "user", "content": prompt}
+                ],
+                max_tokens=800
+               )
+              report_text = response.choices[0].message.content
+
                 )
                 report_text = response.choices[0].message.content
             except Exception as e:
@@ -219,16 +225,24 @@ elif page == "Detection Panel":
             pdf.set_font("Arial", "", 12)
             pdf.multi_cell(0, 8, report_text)
 
-            # Add image
-            uploaded_file.seek(0)
-            pdf.image(uploaded_file, x=10, y=None, w=100)
+            # Add image safely to PDF
+            temp_img_path = "temp_image.jpg"
+            with open(temp_img_path, "wb") as f:
+           f.write(uploaded_file.getbuffer())
+           pdf.image(temp_img_path, x=10, y=None, w=100)
+           
             pdf_bytes = io.BytesIO()
             pdf.output(pdf_bytes)
             pdf_bytes.seek(0)
             st.download_button("📥 Download PDF", pdf_bytes, "lab_report.pdf")
+            import os
+           if os.path.exists(temp_img_path):
+           os.remove(temp_img_path)
+
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
