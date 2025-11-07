@@ -6,3 +6,4 @@ pillow
 fpdf
 openai
 flask
+huggingface_hub
