@@ -7,3 +7,5 @@ fpdf
 openai
 flask
 huggingface_hub
+streamlit-autorefresh
+
