@@ -197,7 +197,37 @@ elif page == "Detection Panel":
                 response = openai.ChatCompletion.create(
                     model="gpt-4",
                     messages=[
-                        {"role": "system", "content": "You are a scientific report w
+                        {"role": "system", "content": "You are a scientific report writer."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=800
+                )
+                report_text = response.choices[0].message.content
+            except Exception as e:
+                st.error(f"GPT Error: {e}")
+                report_text = "Could not generate report."
+
+            st.markdown(report_text)
+
+            # PDF generation
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", "B", 16)
+            pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
+            pdf.set_font("Arial", "", 12)
+            pdf.multi_cell(0, 8, report_text)
+
+            # Add image
+            uploaded_file.seek(0)
+            pdf.image(uploaded_file, x=10, y=None, w=100)
+            pdf_bytes = io.BytesIO()
+            pdf.output(pdf_bytes)
+            pdf_bytes.seek(0)
+            st.download_button("📥 Download PDF", pdf_bytes, "lab_report.pdf")
+
+st.markdown("---")
+st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
