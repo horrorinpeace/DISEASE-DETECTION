@@ -15,3 +15,4 @@ torchaudio
 transformers
 accelerate
 sentencepiece
+rich<14
