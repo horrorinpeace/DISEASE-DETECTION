@@ -153,7 +153,7 @@ elif page == "Detection Panel":
 
     if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="Captured / Uploaded Image", use_container_width=True)
+        st.image(image, caption="Captured / Uploaded Image", use_column_width=True)
 
         # ==========================
         # MODEL PREDICTION
@@ -241,6 +241,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
