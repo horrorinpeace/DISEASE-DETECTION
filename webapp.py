@@ -119,7 +119,7 @@ def receive_data():
     return jsonify({"status": "received"}), 200
 
 def run_flask():
-    flask_app.run(host="0.0.0.0", port=8502, debug=False, use_reloader=False)
+    flask_app.run(host="0.0.0.0", port=8600, debug=False, use_reloader=False)
 
 threading.Thread(target=run_flask, daemon=True).start()
 
@@ -241,6 +241,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
