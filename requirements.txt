@@ -18,5 +18,5 @@ flask>=3.0.0
 
 # Optional but helpful
 requests>=2.31.0
-rich>=14.0.0
+rich==13.9.2
 huggingface_hub
