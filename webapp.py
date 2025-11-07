@@ -64,7 +64,7 @@ def load_model():
 
 try:
     model = load_model()
-    CLASS_NAMES = 'HEALTHY RICE',
+    CLASS_NAMES = ['HEALTHY RICE',
                 'RICE BACTERIAL BLIGHT',
                 'RICE BROWN SPOT',
                 'RICE LEAF SMUT',
@@ -239,3 +239,4 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
