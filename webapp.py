@@ -161,6 +161,8 @@ elif page == "Detection Panel":
     # SENSOR DATA (TEXT-ONLY)
     # ==========================
     st.subheader("📡 Live Sensor Data ")
+    from streamlit_autorefresh import st_autorefresh
+    st_autorefresh(interval=10000, key="sensor_refresh")
     sensor = fetch_sensor_data()
 
     if sensor["temperature"] is not None:
@@ -227,6 +229,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
