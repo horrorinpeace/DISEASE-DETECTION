@@ -196,24 +196,23 @@ elif page == "Detection Panel":
             """
 
             try:
-                from openai import OpenAI
-                client = OpenAI(api_key=openai.api_key)
+    from openai import OpenAI
+    client = OpenAI(api_key=openai.api_key)
 
-                response = client.chat.completions.create(
-                model="gpt-4o-mini",  # or "gpt-4-turbo"
-                 messages=[
-                {"role": "system", "content": "You are a scientific report writer."},
-                 {"role": "user", "content": prompt}
-                ],
-                max_tokens=800
-               )
-              report_text = response.choices[0].message.content
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",  # or "gpt-4-turbo"
+        messages=[
+            {"role": "system", "content": "You are a scientific report writer."},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=800
+    )
 
-                )
-                report_text = response.choices[0].message.content
-            except Exception as e:
-                st.error(f"GPT Error: {e}")
-                report_text = "Could not generate report."
+    report_text = response.choices[0].message.content
+
+except Exception as e:
+    st.error(f"GPT Error: {e}")
+    report_text = "Could not generate report."
 
             st.markdown(report_text)
 
@@ -242,6 +241,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
