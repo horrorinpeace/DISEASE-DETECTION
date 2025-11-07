@@ -9,3 +9,9 @@ flask
 huggingface_hub
 streamlit-autorefresh
 transformers
+torch
+torchvision
+torchaudio
+transformers
+accelerate
+sentencepiece
