@@ -230,7 +230,7 @@ elif page == "Detection Panel":
                 Sample Analysis, Sensor Data, Observations, Conclusion."""
                 try:
                   report_text = h2ogpte_chat(prompt)
-                   except Exception as e:
+                  except Exception as e:
                    st.error(f"H2O GPT Error: {e}")
                     report_text = "Could not generate report."
 
@@ -261,6 +261,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
