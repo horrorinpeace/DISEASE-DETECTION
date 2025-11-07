@@ -8,7 +8,7 @@ import torch
 
 def run(prompt):
     # ⚙️ Use a smaller and faster model
-    model_name = "h2oai/h2ogpt-4096-llama2-1.3b"  # about 6× smaller than 7B
+    model_name = "h2oai/h2ogpt-4096-mpt-7b"  # about 6× smaller than 7B
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(
