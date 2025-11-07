@@ -189,17 +189,18 @@ elif page == "Detection Panel":
 
             try:
                 # ✅ Local H2O GPT generation (offline model)
-                from transformers import TFAutoModelForCausalLM, AutoTokenizer, pipeline
+                from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
                 MODEL_NAME = "h2oai/h2ogpt-4096-llama2-7b"
 
                 @st.cache_resource
                 def load_local_llm():
                     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-                    model = TFAutoModelForCausalLM.from_pretrained(
+                    model = AutoModelForCausalLM.from_pretrained(
                         MODEL_NAME,
-                        from_pt=True  # converts PyTorch weights to TensorFlow
-                        )
+                        torch_dtype="auto",
+                        device_map="auto"
+                    )
                     generator = pipeline(
                         "text-generation",
                         model=model,
@@ -252,9 +253,3 @@ elif page == "Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
-
-
-
-
-
-
