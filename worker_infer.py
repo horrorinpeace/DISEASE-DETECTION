@@ -20,7 +20,7 @@ def run(prompt):
         tokenizer=tokenizer,
         max_new_tokens=600,      # shorter output -> less memory
         temperature=0.7,
-        do_sample=True
+        do_sample=True,
         device=-1
     )
 
