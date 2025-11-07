@@ -294,19 +294,20 @@ if st.button("Generate Report"):
         temp_img_path = "temp_image.jpg"
         with open(temp_img_path, "wb") as f:
                f.write(uploaded_file.getbuffer())
-               pdf.image(temp_img_path, x=10, y=None, w=100)
+              pdf.image(temp_img_path, x=10, y=None, w=100)
            
-         pdf_bytes = pdf.output(dest='S').encode('latin-1')
-         st.download_button(
-         "📥 Download PDF",
-             data=pdf_bytes,
-          file_name="lab_report.pdf",
+              pdf_bytes = pdf.output(dest='S').encode('latin-1')
+              st.download_button(
+              "📥 Download PDF",
+              data=pdf_bytes,
+              file_name="lab_report.pdf",
               mime="application/pdf"
-           )
+          )
 
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
