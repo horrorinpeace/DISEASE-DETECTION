@@ -66,7 +66,32 @@ def load_model():
 
 try:
     model = load_model()
-    CLASS_NAMES = ['HEALTHY MILLET', 'HEALTHY POTATO', 'HEALTHY RICE', 'HEALTHY SUGARCANE', 'HEALTHY TEA LEAF', 'HEALTHY TOMATO', 'HEALTHY WHEAT', 'MILLETS BLAST', 'MILLETS RUST', 'POTATO EARLY BLIGHT', 'POTATO LATE BLIGHT', 'RICE BACTERIAL BLIGHT', 'RICE BROWN SPOT', 'RICE LEAF SMUT', 'SUGARCANE RED ROT', 'SUGARCANE RUST', 'SUGARCANE YELLOW', 'TEA GRAY BLIGHT', 'TEA GREEN MIRID BUG', 'TEA HELOPELTIS', 'TOMATO LEAF MOLD', 'TOMATO MOSAIC VIRUS', 'TOMATO SEPTORIA LEAF SPOT', 'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT', 'WHEAT YELLOW RUST']
+    CLASS_NAMES = ['HEALTHY MILLET',
+                  'HEALTHY POTATO', 
+                  'HEALTHY RICE', 
+                  'HEALTHY SUGARCANE', 
+                  'HEALTHY TEA LEAF',
+                  'HEALTHY TOMATO', 
+                  'HEALTHY WHEAT',
+                  'MILLETS BLAST',
+                  'MILLETS RUST', 
+                  'POTATO EARLY BLIGHT',
+                  'POTATO LATE BLIGHT',
+                  'RICE BACTERIAL BLIGHT',
+                  'RICE BROWN SPOT',
+                  'RICE LEAF SMUT', 
+                  'SUGARCANE RED ROT', 
+                  'SUGARCANE RUST', 
+                  'SUGARCANE YELLOW',
+                  'TEA GRAY BLIGHT', 
+                  'TEA GREEN MIRID BUG',
+                  'TEA HELOPELTIS',
+                  'TOMATO LEAF MOLD', 
+                  'TOMATO MOSAIC VIRUS',
+                  'TOMATO SEPTORIA LEAF SPOT',
+                  'WHEAT BROWN RUST', 
+                  'WHEAT LOOSE SMUT',
+                  'WHEAT YELLOW RUST']
 except Exception as e:
     st.warning(f"⚠️ Could not load model: {e}")
     model = None
@@ -213,6 +238,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
