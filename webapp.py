@@ -208,7 +208,7 @@ elif page == "Detection Panel":
                 max_tokens=800
               )
 
-               report_text = response.choices[0].message.content
+            report_text = response.choices[0].message.content
 
 except Exception as e:
     st.error(f"GPT Error: {e}")
@@ -241,6 +241,7 @@ except Exception as e:
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
