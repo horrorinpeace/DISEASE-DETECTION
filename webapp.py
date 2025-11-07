@@ -57,6 +57,7 @@ openai.api_key = st.secrets.get("OPENAI_API_KEY", "sk-yourkeyhere")
 model_path = hf_hub_download(
     repo_id="qwertymaninwork/Plant_Disease_Detection_System",  # your repo name
     filename="mobilenetv2_plant.keras"
+    )
 @st.cache_resource
 def load_model():
     model = tf.keras.models.load_model(model_path, compile=False, safe_mode=False)
@@ -239,4 +240,5 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
