@@ -284,29 +284,30 @@ if st.button("Generate Report"):
 
 # PDF generation
         pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", "B", 16)
-            pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
-            pdf.set_font("Arial", "", 12)
-            pdf.multi_cell(0, 8, report_text)
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 16)
+         pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
+         pdf.set_font("Arial", "", 12)
+         pdf.multi_cell(0, 8, report_text)
 
-            # Add image safely to PDF
-            temp_img_path = "temp_image.jpg"
-            with open(temp_img_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            pdf.image(temp_img_path, x=10, y=None, w=100)
+         # Add image safely to PDF
+        temp_img_path = "temp_image.jpg"
+           with open(temp_img_path, "wb") as f:
+               f.write(uploaded_file.getbuffer())
+              pdf.image(temp_img_path, x=10, y=None, w=100)
            
-            pdf_bytes = pdf.output(dest='S').encode('latin-1')
-            st.download_button(
-            "📥 Download PDF",
-              data=pdf_bytes,
-              file_name="lab_report.pdf",
+         pdf_bytes = pdf.output(dest='S').encode('latin-1')
+         st.download_button(
+         "📥 Download PDF",
+             data=pdf_bytes,
+          file_name="lab_report.pdf",
               mime="application/pdf"
-               )
+           )
 
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
