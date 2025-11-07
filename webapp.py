@@ -195,7 +195,7 @@ elif page == "Detection Panel":
             Sample Analysis, Sensor Data, Observations, Conclusion.
             """
 
-            try:
+      try:
                 import requests
                 import os
 
@@ -228,11 +228,11 @@ elif page == "Detection Panel":
                 Sensor Data: {sensor}
                 Format as structured tables under headings:
                 Sample Analysis, Sensor Data, Observations, Conclusion."""
-try:
-    report_text = h2ogpte_chat(prompt)
-    except Exception as e:
-    st.error(f"H2O GPT Error: {e}")
-    report_text = "Could not generate report."
+                try:
+                  report_text = h2ogpte_chat(prompt)
+                   except Exception as e:
+                   st.error(f"H2O GPT Error: {e}")
+                    report_text = "Could not generate report."
 
                  st.markdown(report_text)
 
@@ -261,6 +261,7 @@ try:
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
