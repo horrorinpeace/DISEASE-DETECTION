@@ -197,7 +197,7 @@ elif page == "Detection Panel":
 
             try:
                 from openai import OpenAI
-                client = OpenAI(api_key="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")
+                client = OpenAI(api_key="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")
 
                 response = client.chat.completions.create(
                     model="gpt-4o-mini",  # or "gpt-4-turbo"
@@ -240,6 +240,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
