@@ -66,37 +66,11 @@ def load_model():
 
 try:
     model = load_model()
-    CLASS_NAMES = ['HEALTHY RICE',
-                'RICE BACTERIAL BLIGHT',
-                'RICE BROWN SPOT',
-                'RICE LEAF SMUT',
-                'HEALTHY WHEAT',
-                'WHEAT LOOSE SMUT',
-                'WHEAT YELLOW RUST',
-                'WHEAT BROWN RUST',
-                'HEALTHY MILLET',
-                'MILLET RUST',
-                'MILLET BLAST',
-                'HEALTHY SUGARCANE',
-                'SUGARCANE YELLOW',
-                'SUGARCANE RED ROT',
-                'SUGARCANE RUST',
-                'HEALTHY TEA LEAF',
-                'TEA GREEN MIRID BUG',
-                'TEA GRAY BLIGHT',
-                'TEA HELOPELITIS',
-                'HEALTHY POTATO',
-                'POTATO EARLY BLIGHT',
-                'POTATO LATE BLIGHT',
-                'HEALTHY TOMATO',
-                'TOMATO LEAF MOLD',
-                'TOMATO MOSAIC VIRUS',
-                'TOMATO SEPTORIA LEAF SPOT',
-                'HEALTHY RICE',
-                'HEALTHY SUGARCANE',
-                'HEALTHY TEA LEAF',
-                'HEALTHY WHEAT',
-            ]
+    CLASS_NAMES = Found 40429 files belonging to 26 classes.
+Using 32344 files for training.
+Found 40429 files belonging to 26 classes.
+Using 8085 files for validation.
+Classes: ['HEALTHY MILLET', 'HEALTHY POTATO', 'HEALTHY RICE', 'HEALTHY SUGARCANE', 'HEALTHY TEA LEAF', 'HEALTHY TOMATO', 'HEALTHY WHEAT', 'MILLETS BLAST', 'MILLETS RUST', 'POTATO EARLY BLIGHT', 'POTATO LATE BLIGHT', 'RICE BACTERIAL BLIGHT', 'RICE BROWN SPOT', 'RICE LEAF SMUT', 'SUGARCANE RED ROT', 'SUGARCANE RUST', 'SUGARCANE YELLOW', 'TEA GRAY BLIGHT', 'TEA GREEN MIRID BUG', 'TEA HELOPELTIS', 'TOMATO LEAF MOLD', 'TOMATO MOSAIC VIRUS', 'TOMATO SEPTORIA LEAF SPOT', 'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT', 'WHEAT YELLOW RUST']
 except Exception as e:
     st.warning(f"⚠️ Could not load model: {e}")
     model = None
@@ -245,6 +219,7 @@ elif page == "Detection Panel":
 
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
 
