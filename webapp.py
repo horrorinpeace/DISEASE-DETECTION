@@ -128,6 +128,14 @@ elif page == "Detection Panel":
     st.sidebar.subheader("🔐 OpenRouter API Key")
     api_key = st.sidebar.text_input("Enter your OpenRouter API key (starts with sk-or-...)", type="password")
 
+    # Initialize session state variables
+    if "report_text" not in st.session_state:
+        st.session_state.report_text = None
+    if "predicted_class" not in st.session_state:
+        st.session_state.predicted_class = None
+    if "confidence" not in st.session_state:
+        st.session_state.confidence = None
+
     uploaded_file = st.camera_input("Capture an image")
     if uploaded_file is None:
         uploaded_file = st.file_uploader("Or upload an image", type=["png", "jpg", "jpeg"])
@@ -145,6 +153,10 @@ elif page == "Detection Panel":
             confidence = np.max(preds)
             predicted_class = CLASS_NAMES[np.argmax(preds)]
 
+            # Store in session
+            st.session_state.predicted_class = predicted_class
+            st.session_state.confidence = confidence
+
             df_results = pd.DataFrame({
                 "Disease": CLASS_NAMES,
                 "Probability": preds[0]
@@ -155,9 +167,16 @@ elif page == "Detection Panel":
         else:
             st.error("No model loaded. Please ensure the model file is available.")
 
+    # ==========================
+    # SENSOR DATA (auto-refresh safely)
+    # ==========================
     st.subheader("📡 Live Sensor Data")
+
+    import time
     from streamlit_autorefresh import st_autorefresh
-    st_autorefresh(interval=10000, key="sensor_refresh")
+
+    # Refresh only sensor block
+    count = st_autorefresh(interval=10000, key="sensor_refresh", limit=100000)
     sensor = fetch_sensor_data()
 
     if sensor["temperature"] is not None:
@@ -171,7 +190,7 @@ elif page == "Detection Panel":
         st.warning("Waiting for ESP32 data from ThingSpeak...")
 
     # ==========================
-    # LAB REPORT GENERATION (OpenRouter)
+    # LAB REPORT GENERATION (Persistent)
     # ==========================
     st.subheader("🧾 Generate AI Lab Report")
 
@@ -188,7 +207,7 @@ elif page == "Detection Panel":
             prompt = f"""
             You are an agricultural scientist.
             Create a concise lab report with recommendations based on:
-            - Detected disease: {predicted_class} (confidence {confidence*100:.2f}%)
+            - Detected disease: {st.session_state.predicted_class} (confidence {st.session_state.confidence*100:.2f}%)
             - Temperature: {sensor['temperature']} °C
             - Humidity: {sensor['humidity']} %
             - Soil moisture: {sensor['soil_moisture']} %
@@ -216,30 +235,8 @@ elif page == "Detection Panel":
                     result = response.json()
                     report_text = result["choices"][0]["message"]["content"]
 
-                    st.markdown("### 🧾 AI Lab Report")
-                    st.write(report_text)
-
-                    # PDF generation
-                    pdf = FPDF()
-                    pdf.add_page()
-                    pdf.set_font("Arial", "B", 16)
-                    pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
-                    pdf.set_font("Arial", "", 12)
-                    pdf.multi_cell(0, 8, report_text)
-
-                    temp_img_path = "temp_image.jpg"
-                    with open(temp_img_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-
-                    pdf.image(temp_img_path, x=10, y=None, w=100)
-                    pdf_bytes = pdf.output(dest='S').encode('latin-1')
-
-                    st.download_button(
-                        "📥 Download PDF",
-                        data=pdf_bytes,
-                        file_name="lab_report.pdf",
-                        mime="application/pdf"
-                    )
+                    # Save to session so it persists
+                    st.session_state.report_text = report_text
 
                 else:
                     st.error(f"OpenRouter API Error: {response.status_code} - {response.text}")
@@ -247,10 +244,36 @@ elif page == "Detection Panel":
             except Exception as e:
                 st.error(f"Error generating report: {e}")
 
+    # Show persisted report even after refresh
+    if st.session_state.report_text:
+        st.markdown("### 🧾 AI Lab Report")
+        st.write(st.session_state.report_text)
+
+        # PDF generation
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 16)
+        pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
+        pdf.set_font("Arial", "", 12)
+        pdf.multi_cell(0, 8, st.session_state.report_text)
+
+        if uploaded_file:
+            temp_img_path = "temp_image.jpg"
+            with open(temp_img_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            pdf.image(temp_img_path, x=10, y=None, w=100)
+
+        pdf_bytes = pdf.output(dest='S').encode('latin-1')
+        st.download_button(
+            "📥 Download PDF",
+            data=pdf_bytes,
+            file_name="lab_report.pdf",
+            mime="application/pdf"
+        )
 # ==========================
 # FOOTER
 # ==========================
 st.markdown("---")
-st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+st.markdown("© 2025 AI Detection Lab — Built with ❤ using Streamlit.")
 
 
