@@ -52,7 +52,7 @@ set_background("https://images.unsplash.com/photo-1503264116251-35a269479413?aut
 # ==========================
 model_path = hf_hub_download(
     repo_id="qwertymaninwork/Plant_Disease_Detection_System",
-    filename="mobilenetv2_finetuned.h5"
+    filename="mobilenetv2_plant.h5"
 )
 
 @st.cache_resource
@@ -70,13 +70,8 @@ try:
     'SUGARCANE RED ROT', 'SUGARCANE RUST', 'SUGARCANE YELLOW',
     'TEA GRAY BLIGHT', 'TEA GREEN MIRID BUG', 'TEA HELOPELTIS',
     'TOMATO LEAF MOLD', 'TOMATO MOSAIC VIRUS', 'TOMATO SEPTORIA LEAF SPOT',
-    'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT', 'WHEAT YELLOW RUST',
-    'TOMATO LEAF WILT'  # 👈 newly added class
-]
-df_results = pd.DataFrame({
-    "Disease": CLASS_NAMES,
-    "Probability": preds[0]
-})
+    'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT', 'WHEAT YELLOW RUST' # 👈 newly added class
+    ]
 
 except Exception as e:
     st.warning(f"⚠️ Could not load model: {e}")
@@ -281,6 +276,7 @@ elif page == "Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤ using Streamlit.")
+
 
 
 
