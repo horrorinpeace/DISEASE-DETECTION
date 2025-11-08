@@ -52,7 +52,7 @@ set_background("https://images.unsplash.com/photo-1503264116251-35a269479413?aut
 # ==========================
 model_path = hf_hub_download(
     repo_id="qwertymaninwork/Plant_Disease_Detection_System",
-    filename="mobilenetv2_plant.h5"
+    filename="mobilenetv2_finetuned.h5"
 )
 
 @st.cache_resource
@@ -275,5 +275,6 @@ elif page == "Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤ using Streamlit.")
+
 
 
