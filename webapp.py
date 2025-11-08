@@ -9,6 +9,7 @@ from fpdf import FPDF
 from huggingface_hub import hf_hub_download
 from flask import Flask, request, jsonify
 import tensorflow as tf
+import os
 
 # ==========================
 # PAGE CONFIG
@@ -37,8 +38,7 @@ def set_background(url):
             text-shadow:
                 -1px -1px 0 #000,
                 1px -1px 0 #000,
-                -1px 1px 0 #000,
-                1px 1px 0 #000;
+                -1px 1px 0 #000;
         }}
         </style>
         """,
@@ -124,6 +124,10 @@ if page == "About":
 elif page == "Detection Panel":
     st.title("🔬 Detection Panel")
 
+    # API Key entry box
+    st.sidebar.subheader("🔐 OpenRouter API Key")
+    api_key = st.sidebar.text_input("Enter your OpenRouter API key (starts with sk-or-...)", type="password")
+
     uploaded_file = st.camera_input("Capture an image")
     if uploaded_file is None:
         uploaded_file = st.file_uploader("Or upload an image", type=["png", "jpg", "jpeg"])
@@ -167,17 +171,19 @@ elif page == "Detection Panel":
         st.warning("Waiting for ESP32 data from ThingSpeak...")
 
     # ==========================
-    # LAB REPORT GENERATION
+    # LAB REPORT GENERATION (OpenRouter)
     # ==========================
     st.subheader("🧾 Generate AI Lab Report")
 
     if st.button("Generate Lab Report"):
-        if uploaded_file is None:
+        if not api_key:
+            st.error("Please enter your OpenRouter API key in the sidebar.")
+        elif uploaded_file is None:
             st.error("Please upload or capture an image first.")
         elif model is None:
             st.error("AI model not loaded.")
         else:
-            st.info("🧠 Generating AI-based lab report... please wait a few seconds.")
+            st.info("🧠 Generating AI-based lab report using OpenRouter...")
 
             prompt = f"""
             You are an agricultural scientist.
@@ -189,65 +195,62 @@ elif page == "Detection Panel":
             Include sections: Diagnosis, Observations, Recommended Actions, Preventive Measures.
             """
 
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
+
+            data = {
+                "model": "meta-llama/llama-3.1-8b-instruct",
+                "messages": [
+                    {"role": "system", "content": "You are an expert agricultural scientist writing detailed reports."},
+                    {"role": "user", "content": prompt}
+                ],
+                "max_tokens": 500,
+                "temperature": 0.7
+            }
+
             try:
-                import torch
-                from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+                response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
+                if response.status_code == 200:
+                    result = response.json()
+                    report_text = result["choices"][0]["message"]["content"]
 
-                MODEL_NAME = "distilgpt2"
-
-                @st.cache_resource
-                def load_small_model():
-                    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-                    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
-                    generator = pipeline(
-                        "text-generation",
-                        model=model,
-                        tokenizer=tokenizer,
-                        max_new_tokens=250,
-                        temperature=0.8,
-                        do_sample=True,
-                        device=-1
-                    )
-                    return generator
-
-                generator = load_small_model()
-                output = generator(prompt, num_return_sequences=1)
-                report_text = output[0].get("generated_text", "").strip()
-
-                if not report_text:
-                    st.warning("Model returned empty text.")
-                else:
                     st.markdown("### 🧾 AI Lab Report")
                     st.write(report_text)
 
+                    # PDF generation
+                    pdf = FPDF()
+                    pdf.add_page()
+                    pdf.set_font("Arial", "B", 16)
+                    pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
+                    pdf.set_font("Arial", "", 12)
+                    pdf.multi_cell(0, 8, report_text)
+
+                    temp_img_path = "temp_image.jpg"
+                    with open(temp_img_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+
+                    pdf.image(temp_img_path, x=10, y=None, w=100)
+                    pdf_bytes = pdf.output(dest='S').encode('latin-1')
+
+                    st.download_button(
+                        "📥 Download PDF",
+                        data=pdf_bytes,
+                        file_name="lab_report.pdf",
+                        mime="application/pdf"
+                    )
+
+                else:
+                    st.error(f"OpenRouter API Error: {response.status_code} - {response.text}")
+
             except Exception as e:
-                st.error(f"GPT Error: {e}")
-                st.warning("Could not generate report. Please check your model or environment.")
-                st.markdown(report_text)
-
-                pdf = FPDF()
-                pdf.add_page()
-                pdf.set_font("Arial", "B", 16)
-                pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
-                pdf.set_font("Arial", "", 12)
-                pdf.multi_cell(0, 8, report_text)
-
-                temp_img_path = "temp_image.jpg"
-                with open(temp_img_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-
-                pdf.image(temp_img_path, x=10, y=None, w=100)
-                pdf_bytes = pdf.output(dest='S').encode('latin-1')
-
-                st.download_button(
-                    "📥 Download PDF",
-                    data=pdf_bytes,
-                    file_name="lab_report.pdf",
-                    mime="application/pdf"
-                )
+                st.error(f"Error generating report: {e}")
 
 # ==========================
 # FOOTER
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
+
