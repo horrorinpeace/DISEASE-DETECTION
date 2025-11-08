@@ -7,15 +7,6 @@ import streamlit as st
 import requests
 from fpdf import FPDF
 from huggingface_hub import hf_hub_download
-import io
-import threading
-import numpy as np
-import pandas as pd
-from PIL import Image
-import streamlit as st
-import requests
-from fpdf import FPDF
-from huggingface_hub import hf_hub_download
 from flask import Flask, request, jsonify
 import tensorflow as tf
 
@@ -176,99 +167,87 @@ elif page == "Detection Panel":
         st.warning("Waiting for ESP32 data from ThingSpeak...")
 
     # ==========================
-# LAB REPORT GENERATION (reliable on-page)
-# ==========================
-st.subheader("🧾 Generate AI Lab Report")
+    # LAB REPORT GENERATION
+    # ==========================
+    st.subheader("🧾 Generate AI Lab Report")
 
-if st.button("Generate Lab Report"):
-    if uploaded_file is None:
-        st.error("Please upload or capture an image first.")
-    elif model is None:
-        st.error("AI model not loaded.")
-    else:
-        st.info("🧠 Generating AI-based lab report... please wait a few seconds.")
+    if st.button("Generate Lab Report"):
+        if uploaded_file is None:
+            st.error("Please upload or capture an image first.")
+        elif model is None:
+            st.error("AI model not loaded.")
+        else:
+            st.info("🧠 Generating AI-based lab report... please wait a few seconds.")
 
-        # Build the text prompt
-        prompt = f"""
-        You are an agricultural scientist.
-        Create a concise lab report with recommendations based on:
-        - Detected disease: {predicted_class} (confidence {confidence*100:.2f}%)
-        - Temperature: {sensor['temperature']} °C
-        - Humidity: {sensor['humidity']} %
-        - Soil moisture: {sensor['soil_moisture']} %
-        Include sections: Diagnosis, Observations, Recommended Actions, Preventive Measures.
-        """
+            prompt = f"""
+            You are an agricultural scientist.
+            Create a concise lab report with recommendations based on:
+            - Detected disease: {predicted_class} (confidence {confidence*100:.2f}%)
+            - Temperature: {sensor['temperature']} °C
+            - Humidity: {sensor['humidity']} %
+            - Soil moisture: {sensor['soil_moisture']} %
+            Include sections: Diagnosis, Observations, Recommended Actions, Preventive Measures.
+            """
 
-        try:
-            import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+            try:
+                import torch
+                from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
-            # 👉 small model that always runs (CPU-friendly)
-            MODEL_NAME = "distilgpt2"
+                MODEL_NAME = "distilgpt2"
 
-            @st.cache_resource
-            def load_small_model():
-                tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-                model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
-                generator = pipeline(
-                    "text-generation",
-                    model=model,
-                    tokenizer=tokenizer,
-                    max_new_tokens=250,
-                    temperature=0.8,
-                    do_sample=True,
-                    device=-1   # force CPU, avoids CUDA issues
+                @st.cache_resource
+                def load_small_model():
+                    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+                    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
+                    generator = pipeline(
+                        "text-generation",
+                        model=model,
+                        tokenizer=tokenizer,
+                        max_new_tokens=250,
+                        temperature=0.8,
+                        do_sample=True,
+                        device=-1
+                    )
+                    return generator
+
+                generator = load_small_model()
+                output = generator(prompt, num_return_sequences=1)
+                report_text = output[0].get("generated_text", "").strip()
+
+                if not report_text:
+                    st.warning("Model returned empty text.")
+                else:
+                    st.markdown("### 🧾 AI Lab Report")
+                    st.write(report_text)
+
+            except Exception as e:
+                st.error(f"GPT Error: {e}")
+                st.warning("Could not generate report. Please check your model or environment.")
+                st.markdown(report_text)
+
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", "B", 16)
+                pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
+                pdf.set_font("Arial", "", 12)
+                pdf.multi_cell(0, 8, report_text)
+
+                temp_img_path = "temp_image.jpg"
+                with open(temp_img_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+
+                pdf.image(temp_img_path, x=10, y=None, w=100)
+                pdf_bytes = pdf.output(dest='S').encode('latin-1')
+
+                st.download_button(
+                    "📥 Download PDF",
+                    data=pdf_bytes,
+                    file_name="lab_report.pdf",
+                    mime="application/pdf"
                 )
-                return generator
-
-            generator = load_small_model()
-
-            output = generator(prompt, num_return_sequences=1)
-            report_text = output[0].get("generated_text", "").strip()
-
-            if not report_text:
-                st.warning("Model returned empty text.")
-            else:
-                st.markdown("### 🧾 AI Lab Report")
-                st.write(report_text)
-
-        except Exception as e:
-            st.error(f"GPT Error: {e}")
-
-            st.warning("Could not generate report. Please check your model or environment.")
-
-            st.markdown(report_text)
-
-            # ==========================
-            # PDF GENERATION
-            # ==========================
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", "B", 16)
-            pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
-            pdf.set_font("Arial", "", 12)
-            pdf.multi_cell(0, 8, report_text)
-
-            temp_img_path = "temp_image.jpg"
-            with open(temp_img_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-
-            pdf.image(temp_img_path, x=10, y=None, w=100)
-            pdf_bytes = pdf.output(dest='S').encode('latin-1')
-
-            st.download_button(
-                "📥 Download PDF",
-                data=pdf_bytes,
-                file_name="lab_report.pdf",
-                mime="application/pdf"
-            )
 
 # ==========================
 # FOOTER
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
-
-
-
-
