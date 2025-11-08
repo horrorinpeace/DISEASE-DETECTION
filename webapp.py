@@ -70,7 +70,7 @@ try:
         'SUGARCANE RED ROT', 'SUGARCANE RUST', 'SUGARCANE YELLOW',
         'TEA GRAY BLIGHT', 'TEA GREEN MIRID BUG', 'TEA HELOPELTIS',
         'TOMATO LEAF MOLD', 'TOMATO MOSAIC VIRUS', 'TOMATO SEPTORIA LEAF SPOT',
-        'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT', 'WHEAT YELLOW RUST'
+        'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT', 'WHEAT YELLOW RUST', ['TOMATO LEAF WILT']
     ]
 except Exception as e:
     st.warning(f"⚠️ Could not load model: {e}")
@@ -275,6 +275,7 @@ elif page == "Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤ using Streamlit.")
+
 
 
 
