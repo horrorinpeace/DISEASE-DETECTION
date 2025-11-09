@@ -9,6 +9,7 @@ from huggingface_hub import hf_hub_download
 import tensorflow as tf
 import os
 import json
+import time
 
 # ==========================
 # PAGE CONFIG
@@ -37,9 +38,6 @@ def set_background(url):
         h1, h2, h3, h4, h5, h6, p, div, span {{
             color: white !important;
             font-family: 'Segoe UI', sans-serif;
-        }}
-        .css-1q8dd3e p {{
-            font-size: 18px !important;
         }}
         .stButton>button {{
             background-color: #34a853 !important;
@@ -163,12 +161,20 @@ elif page == "AI Detection Panel":
             st.success(f"🌿 The AI detected: **{predicted_class}** with {confidence*100:.2f}% confidence.")
 
     # ==========================
-    # SENSOR DATA
+    # SENSOR DATA (no page refresh)
     # ==========================
     st.header("🌡 Step 2: Check Live Farm Data")
-    from streamlit_autorefresh import st_autorefresh
-    st_autorefresh(interval=10000, key="sensor_refresh")
-    sensor = fetch_sensor_data()
+
+    if "sensor_data" not in st.session_state:
+        st.session_state.sensor_data = fetch_sensor_data()
+        st.session_state.last_update = time.time()
+
+    # update every 10 seconds
+    if time.time() - st.session_state.last_update > 10:
+        st.session_state.sensor_data = fetch_sensor_data()
+        st.session_state.last_update = time.time()
+
+    sensor = st.session_state.sensor_data
 
     if sensor["temperature"]:
         col1, col2, col3 = st.columns(3)
@@ -180,7 +186,7 @@ elif page == "AI Detection Panel":
         st.warning("Waiting for live data from your farm sensors...")
 
     # ==========================
-    # AI REPORT (Simplified Language)
+    # AI REPORT
     # ==========================
     st.header("📋 Step 3: Get Simple AI Farm Report")
 
@@ -244,15 +250,13 @@ elif page == "AI Detection Panel":
                     if response.status_code != 200:
                         st.error(f"OpenRouter API Error: {response.status_code}")
                     else:
-                        for line in response.iter_lines():
-                            if line:
+                        for line in response.iter_lines(decode_unicode=True):
+                            if line and line.startswith("data: "):
                                 try:
-                                    decoded = line.decode("utf-8")
-                                    if decoded.startswith("data: "):
-                                        payload = json.loads(decoded[6:])
-                                        delta = payload.get("choices", [{}])[0].get("delta", {}).get("content", "")
-                                        full_text += delta
-                                        report_placeholder.markdown(full_text + "▌")
+                                    payload = json.loads(line[6:])
+                                    delta = payload.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                                    full_text += delta
+                                    report_placeholder.markdown("### 🌿 Your Farm Report\n" + full_text + "▌")
                                 except Exception:
                                     continue
 
@@ -260,7 +264,6 @@ elif page == "AI Detection Panel":
                         st.session_state.report_text = full_text
                         st.session_state.is_generating = False
                         st.success("✅ Report ready! Scroll down to download it.")
-
             except Exception as e:
                 st.error(f"❌ Error generating report: {e}")
                 st.session_state.is_generating = False
