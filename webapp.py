@@ -45,6 +45,11 @@ def set_background():
             border-radius: 12px !important;
             padding: 10px 25px !important;
         }
+
+        /* ✅ Flip live camera preview horizontally */
+        video {
+            transform: scaleX(-1) !important;
+        }
         </style>
         """,
         unsafe_allow_html=True
@@ -141,14 +146,14 @@ elif page == "AI Detection Panel":
 
     api_key = st.sidebar.text_input("🔐 Enter your OpenRouter API key (starts with sk-or-...)", type="password")
 
-    # 🎥 Inverted camera
-    uploaded_file = st.camera_input("📸 Take a photo of your crop leaf", mirror_image=True)
+    # 🎥 Camera live view is now mirrored via CSS
+    uploaded_file = st.camera_input("📸 Take a photo of your crop leaf")
     if uploaded_file is None:
         uploaded_file = st.file_uploader("Or upload a leaf image", type=["png", "jpg", "jpeg"])
 
     if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="🪴 This is the image being analyzed", use_column_width=True)
+        st.image(image, caption="🪴 This is the captured image being analyzed", use_column_width=True)
 
         if model:
             img_resized = image.resize((224, 224))
