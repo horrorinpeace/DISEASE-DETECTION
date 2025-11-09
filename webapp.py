@@ -50,7 +50,8 @@ def set_background(url):
         unsafe_allow_html=True
     )
 
-set_background("https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.istockphoto.com%2Fphotos%2Forganic-farming&psig=AOvVaw2dML5IIO_wcJCtNfAme8kW&ust=1762786023674000&source=images&cd=vfe&opi=89978449&ved=0CBUQjRxqFwoTCPDbj5is5ZADFQAAAAAdAAAAABAE")
+# ✅ Updated background URL only
+set_background("https://media.istockphoto.com/id/1355556716/photo/organic-farming.webp?b=1&s=612x612&w=0&k=20&c=xueWl9im4owKfKCNd6KpPiCUpkM2Rp8c4DjfsFUDu1E=")
 
 # ==========================
 # LOAD MODEL
@@ -266,4 +267,3 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **Smart Farm Doctor © 2025** — Helping Farmers Grow Smarter 🌿")
-
