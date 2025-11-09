@@ -173,12 +173,14 @@ elif page == "Detection Panel":
         st.warning("Waiting for ESP32 data from ThingSpeak...")
 
     # ==========================
-    # LAB REPORT GENERATION (OpenRouter, Live Stream)
+    # LAB REPORT GENERATION (Live Streaming)
     # ==========================
     st.subheader("🧾 Generate AI Lab Report")
 
     if "report_text" not in st.session_state:
         st.session_state.report_text = ""
+    if "is_generating" not in st.session_state:
+        st.session_state.is_generating = False
     if "predicted_class" not in st.session_state:
         st.session_state.predicted_class = ""
     if "confidence" not in st.session_state:
@@ -196,6 +198,8 @@ elif page == "Detection Panel":
         elif model is None:
             st.error("AI model not loaded.")
         else:
+            st.session_state.is_generating = True
+            st.session_state.report_text = ""
             st.info("🧠 Generating AI-based lab report using OpenRouter...")
 
             prompt = f"""
@@ -224,16 +228,16 @@ elif page == "Detection Panel":
                 "stream": True
             }
 
+            report_placeholder = st.empty()
+            full_text = ""
+
             try:
-                with requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data, stream=True, timeout=90) as response:
+                with requests.post("https://openrouter.ai/api/v1/chat/completions",
+                                   headers=headers, json=data, stream=True, timeout=90) as response:
                     if response.status_code != 200:
                         st.error(f"OpenRouter API Error: {response.status_code}")
                         st.text_area("API Response", response.text, height=200)
                     else:
-                        st.session_state.report_text = ""
-                        report_placeholder = st.empty()
-                        full_text = ""
-
                         for line in response.iter_lines():
                             if line:
                                 try:
@@ -248,14 +252,18 @@ elif page == "Detection Panel":
 
                         report_placeholder.markdown(full_text)
                         st.session_state.report_text = full_text
+                        st.session_state.is_generating = False
                         st.success("✅ Lab report generated successfully!")
 
             except requests.exceptions.Timeout:
                 st.error("⏱️ Request timed out. Please try again.")
+                st.session_state.is_generating = False
             except Exception as e:
                 st.error(f"❌ Error generating report: {e}")
+                st.session_state.is_generating = False
 
-    if st.session_state.report_text:
+    # Display the final report only when not streaming
+    if st.session_state.report_text and not st.session_state.is_generating:
         st.markdown("### 🧾 AI Lab Report")
         st.markdown(st.session_state.report_text)
 
