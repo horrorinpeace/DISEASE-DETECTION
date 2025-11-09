@@ -182,7 +182,7 @@ elif page == "AI Detection Panel":
     # ==========================
     # AI REPORT (Simplified Language)
     # ==========================
-    st.header("📋 Step 3: Get Simple AI Farm Report")
+    st.header("📋 Step 3: Get AI Farm Report")
 
     if "report_text" not in st.session_state:
         st.session_state.report_text = ""
@@ -203,7 +203,7 @@ elif page == "AI Detection Panel":
         else:
             st.session_state.is_generating = True
             st.session_state.report_text = ""
-            st.info("🧠 The AI is writing your report in simple farmer language...")
+            st.info("🧠 The AI is writing your report in simple language...")
 
             prompt = f"""
             You are a helpful agricultural assistant speaking to a farmer.
@@ -285,7 +285,7 @@ elif page == "AI Detection Panel":
         pdf_bytes = pdf.output(dest='S').encode('latin-1')
 
         st.download_button(
-            "📥 Download Simple Report (PDF)",
+            "📥 Download Report (PDF)",
             data=pdf_bytes,
             file_name="farm_report.pdf",
             mime="application/pdf"
@@ -296,5 +296,6 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+
 
 
