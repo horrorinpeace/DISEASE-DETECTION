@@ -173,7 +173,7 @@ elif page == "Detection Panel":
         st.warning("Waiting for ESP32 data from ThingSpeak...")
 
     # ==========================
-    # LAB REPORT GENERATION (Live Streaming)
+    # LAB REPORT GENERATION (Live Streaming - FINAL FIX)
     # ==========================
     st.subheader("🧾 Generate AI Lab Report")
 
@@ -190,7 +190,7 @@ elif page == "Detection Panel":
         st.session_state.predicted_class = predicted_class
         st.session_state.confidence = confidence
 
-    if st.button("Generate Lab Report"):
+    if st.button("Generate Lab Report") and not st.session_state.is_generating:
         if not api_key:
             st.error("Please enter your OpenRouter API key in the sidebar.")
         elif uploaded_file is None:
@@ -250,23 +250,18 @@ elif page == "Detection Panel":
                                 except Exception:
                                     continue
 
-                        report_placeholder.markdown(full_text)
+                        # Final update once done
+                        report_placeholder.markdown("### 🧾 AI Lab Report\n" + full_text)
                         st.session_state.report_text = full_text
                         st.session_state.is_generating = False
                         st.success("✅ Lab report generated successfully!")
 
-            except requests.exceptions.Timeout:
-                st.error("⏱️ Request timed out. Please try again.")
-                st.session_state.is_generating = False
             except Exception as e:
                 st.error(f"❌ Error generating report: {e}")
                 st.session_state.is_generating = False
 
-    # Display the final report only when not streaming
+    # Display final text only after generation is fully complete (no double render)
     if st.session_state.report_text and not st.session_state.is_generating:
-        st.markdown("### 🧾 AI Lab Report")
-        st.markdown(st.session_state.report_text)
-
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", "B", 16)
