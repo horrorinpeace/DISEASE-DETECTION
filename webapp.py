@@ -14,7 +14,7 @@ import time
 # PAGE CONFIG
 # ==========================
 st.set_page_config(
-    page_title="🌾 Smart Farm Doctor",
+    page_title="🌾FARMDOC",
     layout="wide"
 )
 
@@ -50,7 +50,7 @@ def set_background(url):
         unsafe_allow_html=True
     )
 
-set_background("https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=1200&q=80")
+set_background("https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.istockphoto.com%2Fphotos%2Forganic-farming&psig=AOvVaw2dML5IIO_wcJCtNfAme8kW&ust=1762786023674000&source=images&cd=vfe&opi=89978449&ved=0CBUQjRxqFwoTCPDbj5is5ZADFQAAAAAdAAAAABAE")
 
 # ==========================
 # LOAD MODEL
@@ -266,3 +266,4 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **Smart Farm Doctor © 2025** — Helping Farmers Grow Smarter 🌿")
+
