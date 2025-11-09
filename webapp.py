@@ -193,7 +193,7 @@ elif page == "AI Detection Panel":
         st.session_state.predicted_class = predicted_class
         st.session_state.confidence = confidence
 
-    if st.button("🧾 Generate Easy Farm Report") and not st.session_state.is_generating:
+    if st.button("🧾 Generate Farm Report") and not st.session_state.is_generating:
         if not api_key:
             st.error("Please enter your OpenRouter API key in the sidebar.")
         elif not uploaded_file:
@@ -296,6 +296,7 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+
 
 
 
