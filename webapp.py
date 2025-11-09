@@ -166,7 +166,6 @@ elif page == "AI Detection Panel":
     # SENSOR DATA
     # ==========================
     st.header("🌡 Step 2: Check Live Farm Data")
-
     from streamlit_autorefresh import st_autorefresh
     st_autorefresh(interval=10000, key="sensor_refresh")
     sensor = fetch_sensor_data()
@@ -296,4 +295,4 @@ elif page == "AI Detection Panel":
 # FOOTER
 # ==========================
 st.markdown("---")
-st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+st.markdown("🌾 **Smart Farm Doctor © 2025** — Helping Farmers Grow Smarter 🌿")
