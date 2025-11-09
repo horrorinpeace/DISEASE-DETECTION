@@ -175,102 +175,119 @@ elif page == "Detection Panel":
     # ==========================
     # 🧠 LAB REPORT GENERATION (OpenRouter) — STREAMING FIXED VERSION
     # ==========================
-    st.subheader("🧾 Generate AI Lab Report")
 
-    if st.button("Generate Lab Report"):
-        if not api_key:
-            st.error("Please enter your OpenRouter API key in the sidebar.")
-        elif uploaded_file is None:
-            st.error("Please upload or capture an image first.")
-        elif model is None:
-            st.error("AI model not loaded.")
-        else:
-            st.info("🧠 Generating AI-based lab report using OpenRouter...")
+# ==========================
+# 🧠 LAB REPORT GENERATION (OpenRouter) — PERMANENT FIX
+# ==========================
+st.subheader("🧾 Generate AI Lab Report")
 
-            prompt = f"""
-            You are an agricultural scientist.
-            Create a concise lab report with recommendations based on:
-            - Detected disease: {predicted_class} (confidence {confidence*100:.2f}%)
-            - Temperature: {sensor['temperature']} °C
-            - Humidity: {sensor['humidity']} %
-            - Soil moisture: {sensor['soil_moisture']} %
-            Include sections: Diagnosis, Observations, Recommended Actions, Preventive Measures.
-            """
+# Initialize state variable to persist AI output
+if "ai_report_text" not in st.session_state:
+    st.session_state.ai_report_text = ""
 
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "Accept": "text/event-stream"
-            }
+if st.button("Generate Lab Report"):
+    if not api_key:
+        st.error("Please enter your OpenRouter API key in the sidebar.")
+    elif uploaded_file is None:
+        st.error("Please upload or capture an image first.")
+    elif model is None:
+        st.error("AI model not loaded.")
+    else:
+        st.session_state.ai_report_text = ""  # reset output
+        st.info("🧠 Generating AI-based lab report using OpenRouter...")
 
-            payload = {
-                "model": "meta-llama/llama-3.1-8b-instruct",
-                "messages": [
-                    {"role": "system", "content": "You are an expert agricultural scientist writing detailed reports."},
-                    {"role": "user", "content": prompt}
-                ],
-                "temperature": 0.7,
-                "stream": True
-            }
+        prompt = f"""
+        You are an agricultural scientist.
+        Create a concise lab report with recommendations based on:
+        - Detected disease: {predicted_class} (confidence {confidence*100:.2f}%)
+        - Temperature: {sensor['temperature']} °C
+        - Humidity: {sensor['humidity']} %
+        - Soil moisture: {sensor['soil_moisture']} %
+        Include sections: Diagnosis, Observations, Recommended Actions, Preventive Measures.
+        """
 
-            try:
-                # make streaming POST request
-                with requests.post("https://openrouter.ai/api/v1/chat/completions",
-                                   headers=headers, json=payload, stream=True, timeout=120) as response:
-                    if response.status_code != 200:
-                        st.error(f"OpenRouter API Error: {response.status_code}")
-                        st.text_area("API Response", response.text, height=200)
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream"
+        }
+
+        payload = {
+            "model": "meta-llama/llama-3.1-8b-instruct",
+            "messages": [
+                {"role": "system", "content": "You are an expert agricultural scientist writing detailed reports."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.7,
+            "stream": True
+        }
+
+        try:
+            with requests.post("https://openrouter.ai/api/v1/chat/completions",
+                               headers=headers, json=payload, stream=True, timeout=120) as response:
+                if response.status_code != 200:
+                    st.error(f"OpenRouter API Error: {response.status_code}")
+                    st.text_area("API Response", response.text, height=200)
+                else:
+                    st.markdown("### 🧾 AI Lab Report")
+                    report_area = st.empty()
+                    full_text = ""
+
+                    for line in response.iter_lines(decode_unicode=True):
+                        if line and line.startswith("data: "):
+                            content = line[len("data: "):].strip()
+                            if content == "[DONE]":
+                                break
+                            try:
+                                data = json.loads(content)
+                                delta = data.get("choices", [{}])[0].get("delta", {})
+                                token = delta.get("content", "")
+                                if token:
+                                    full_text += token
+                                    report_area.markdown(full_text)
+                            except Exception:
+                                continue
+
+                    if not full_text.strip():
+                        st.warning("⚠️ No content received. Try again later.")
                     else:
-                        st.markdown("### 🧾 AI Lab Report (Streaming)")
-                        report_area = st.empty()
-                        partial_text = ""
+                        st.session_state.ai_report_text = full_text  # Save for persistence
 
-                        for line in response.iter_lines(decode_unicode=True):
-                            if line and line.startswith("data: "):
-                                try:
-                                    content = line[len("data: "):].strip()
-                                    if content == "[DONE]":
-                                        break
-                                    data = json.loads(content)
-                                    delta = data.get("choices", [{}])[0].get("delta", {})
-                                    token = delta.get("content", "")
-                                    if token:
-                                        partial_text += token
-                                        report_area.markdown(partial_text)
-                                except Exception:
-                                    continue
+        except requests.exceptions.Timeout:
+            st.error("⏱️ Request timed out. Please try again.")
+        except Exception as e:
+            st.error(f"❌ Error: {e}")
 
-                        if not partial_text.strip():
-                            st.warning("⚠️ No content received. Try again later or check your API key.")
-                        else:
-                            # ==========================
-                            # PDF generation
-                            # ==========================
-                            pdf = FPDF()
-                            pdf.add_page()
-                            pdf.set_font("Arial", "B", 16)
-                            pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
-                            pdf.set_font("Arial", "", 12)
-                            pdf.multi_cell(0, 8, partial_text)
+# ==========================
+# 🧾 Display Persisted AI Report
+# ==========================
+if st.session_state.ai_report_text:
+    st.markdown("### 🧾 AI Lab Report (Saved)")
+    st.markdown(st.session_state.ai_report_text)
 
-                            temp_img_path = "temp_image.jpg"
-                            with open(temp_img_path, "wb") as f:
-                                f.write(uploaded_file.getbuffer())
+    # PDF download option
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
+    pdf.set_font("Arial", "", 12)
+    pdf.multi_cell(0, 8, st.session_state.ai_report_text)
 
-                            pdf.image(temp_img_path, x=10, y=None, w=100)
-                            pdf_bytes = pdf.output(dest='S').encode('latin-1')
+    temp_img_path = "temp_image.jpg"
+    if uploaded_file:
+        with open(temp_img_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        pdf.image(temp_img_path, x=10, y=None, w=100)
 
-                            st.download_button(
-                                "📥 Download PDF",
-                                data=pdf_bytes,
-                                file_name="lab_report.pdf",
-                                mime="application/pdf"
-                            )
+    pdf_bytes = pdf.output(dest='S').encode('latin-1')
 
-            except requests.exceptions.Timeout:
-                st.error("⏱️ Request timed out. Please try again.")
-            except Exception as e:
-                st.error(f"❌ Error: {e}")
+    st.download_button(
+        "📥 Download PDF",
+        data=pdf_bytes,
+        file_name="lab_report.pdf",
+        mime="application/pdf"
+    )
+
 
 
 
@@ -279,5 +296,6 @@ elif page == "Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
 
 
