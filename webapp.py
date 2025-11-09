@@ -10,6 +10,7 @@ from huggingface_hub import hf_hub_download
 from flask import Flask, request, jsonify
 import tensorflow as tf
 import os
+import json
 
 # ==========================
 # PAGE CONFIG
@@ -172,11 +173,10 @@ elif page == "Detection Panel":
         st.warning("Waiting for ESP32 data from ThingSpeak...")
 
     # ==========================
-    # LAB REPORT GENERATION (OpenRouter) — FINAL STABLE FIX
+    # LAB REPORT GENERATION (OpenRouter, Live Stream)
     # ==========================
     st.subheader("🧾 Generate AI Lab Report")
 
-    # Initialize session state variables
     if "report_text" not in st.session_state:
         st.session_state.report_text = ""
     if "predicted_class" not in st.session_state:
@@ -184,7 +184,6 @@ elif page == "Detection Panel":
     if "confidence" not in st.session_state:
         st.session_state.confidence = 0.0
 
-    # Save prediction details so Streamlit remembers them
     if uploaded_file and model:
         st.session_state.predicted_class = predicted_class
         st.session_state.confidence = confidence
@@ -199,7 +198,6 @@ elif page == "Detection Panel":
         else:
             st.info("🧠 Generating AI-based lab report using OpenRouter...")
 
-            # Construct the text prompt
             prompt = f"""
             You are an agricultural scientist.
             Create a concise lab report with recommendations based on:
@@ -222,40 +220,41 @@ elif page == "Detection Panel":
                     {"role": "user", "content": prompt}
                 ],
                 "max_tokens": 700,
-                "temperature": 0.7
+                "temperature": 0.7,
+                "stream": True
             }
 
             try:
-                response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data, timeout=60)
-
-                if response.status_code == 200:
-                    result = response.json()
-                    report_text = ""
-                    if "choices" in result and len(result["choices"]) > 0:
-                        choice = result["choices"][0]
-                        if "message" in choice and "content" in choice["message"]:
-                            report_text = choice["message"]["content"].strip()
-                        elif "text" in choice:
-                            report_text = choice["text"].strip()
-
-                    if report_text:
-                        st.session_state.report_text = report_text
-                        st.success("✅ Lab report generated successfully!")
+                with requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data, stream=True, timeout=90) as response:
+                    if response.status_code != 200:
+                        st.error(f"OpenRouter API Error: {response.status_code}")
+                        st.text_area("API Response", response.text, height=200)
                     else:
-                        st.warning("⚠️ AI response was empty. Try again later.")
+                        st.session_state.report_text = ""
+                        report_placeholder = st.empty()
+                        full_text = ""
 
-                else:
-                    st.error(f"OpenRouter API Error: {response.status_code}")
-                    st.text_area("API Response", response.text, height=200)
+                        for line in response.iter_lines():
+                            if line:
+                                try:
+                                    decoded = line.decode("utf-8")
+                                    if decoded.startswith("data: "):
+                                        payload = json.loads(decoded[6:])
+                                        delta = payload.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                                        full_text += delta
+                                        report_placeholder.markdown(full_text + "▌")
+                                except Exception:
+                                    continue
+
+                        report_placeholder.markdown(full_text)
+                        st.session_state.report_text = full_text
+                        st.success("✅ Lab report generated successfully!")
 
             except requests.exceptions.Timeout:
                 st.error("⏱️ Request timed out. Please try again.")
             except Exception as e:
                 st.error(f"❌ Error generating report: {e}")
 
-    # ==========================
-    # DISPLAY REPORT (Persistent)
-    # ==========================
     if st.session_state.report_text:
         st.markdown("### 🧾 AI Lab Report")
         st.markdown(st.session_state.report_text)
