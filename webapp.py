@@ -171,7 +171,8 @@ elif page == "Detection Panel":
         st.warning("Waiting for ESP32 data from ThingSpeak...")
 
     # ==========================
-    # LAB REPORT GENERATION (OpenRouter)
+        # ==========================
+    # LAB REPORT GENERATION (OpenRouter) — FIXED
     # ==========================
     st.subheader("🧾 Generate AI Lab Report")
 
@@ -198,6 +199,7 @@ elif page == "Detection Panel":
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             }
 
             data = {
@@ -206,49 +208,73 @@ elif page == "Detection Panel":
                     {"role": "system", "content": "You are an expert agricultural scientist writing detailed reports."},
                     {"role": "user", "content": prompt}
                 ],
-                "max_tokens": 500,
+                "max_tokens": 700,
                 "temperature": 0.7
             }
 
             try:
-                response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
+                response = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=data,
+                    timeout=60
+                )
+
                 if response.status_code == 200:
                     result = response.json()
-                    report_text = result["choices"][0]["message"]["content"]
 
-                    st.markdown("### 🧾 AI Lab Report")
-                    st.write(report_text)
+                    # 🔍 Handle both possible JSON formats
+                    report_text = None
+                    if "choices" in result and len(result["choices"]) > 0:
+                        choice = result["choices"][0]
+                        if "message" in choice and "content" in choice["message"]:
+                            report_text = choice["message"]["content"].strip()
+                        elif "text" in choice:
+                            report_text = choice["text"].strip()
 
-                    # PDF generation
-                    pdf = FPDF()
-                    pdf.add_page()
-                    pdf.set_font("Arial", "B", 16)
-                    pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
-                    pdf.set_font("Arial", "", 12)
-                    pdf.multi_cell(0, 8, report_text)
+                    if report_text:
+                        st.markdown("### 🧾 AI Lab Report")
+                        st.markdown(report_text)
 
-                    temp_img_path = "temp_image.jpg"
-                    with open(temp_img_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
+                        # ==========================
+                        # PDF generation
+                        # ==========================
+                        pdf = FPDF()
+                        pdf.add_page()
+                        pdf.set_font("Arial", "B", 16)
+                        pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
+                        pdf.set_font("Arial", "", 12)
+                        pdf.multi_cell(0, 8, report_text)
 
-                    pdf.image(temp_img_path, x=10, y=None, w=100)
-                    pdf_bytes = pdf.output(dest='S').encode('latin-1')
+                        temp_img_path = "temp_image.jpg"
+                        with open(temp_img_path, "wb") as f:
+                            f.write(uploaded_file.getbuffer())
 
-                    st.download_button(
-                        "📥 Download PDF",
-                        data=pdf_bytes,
-                        file_name="lab_report.pdf",
-                        mime="application/pdf"
-                    )
+                        pdf.image(temp_img_path, x=10, y=None, w=100)
+                        pdf_bytes = pdf.output(dest='S').encode('latin-1')
+
+                        st.download_button(
+                            "📥 Download PDF",
+                            data=pdf_bytes,
+                            file_name="lab_report.pdf",
+                            mime="application/pdf"
+                        )
+                    else:
+                        st.warning("⚠️ OpenRouter returned an empty response. Try again in a few seconds.")
 
                 else:
-                    st.error(f"OpenRouter API Error: {response.status_code} - {response.text}")
+                    st.error(f"OpenRouter API Error: {response.status_code}")
+                    st.text_area("API Response", response.text, height=200)
 
+            except requests.exceptions.Timeout:
+                st.error("⏱️ Request timed out. Please check your internet connection or try again.")
             except Exception as e:
-                st.error(f"Error generating report: {e}")
+                st.error(f"❌ Error generating report: {e}")
+
 
 # ==========================
 # FOOTER
 # ==========================
 st.markdown("---")
 st.markdown("© 2025 AI Detection Lab — Built with ❤️ using Streamlit.")
+
