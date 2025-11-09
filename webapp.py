@@ -122,7 +122,7 @@ page = st.sidebar.radio("Go to", ["About", "AI Detection Panel"])
 if page == "About":
     st.header("🌾 About FARMDOC")
     st.markdown("""
-    **Smart Farm Doctor** helps farmers detect plant diseases using their phone’s camera or uploaded images.
+    **FARMDOC** helps farmers detect plant diseases using their phone’s camera or uploaded images.
 
     It also gives **simple, clear advice** on:
     - What the disease is  
@@ -304,4 +304,5 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+
 
