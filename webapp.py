@@ -1,6 +1,5 @@
 import io
 import numpy as np
-import pandas as pd
 from PIL import Image
 import streamlit as st
 import requests
@@ -86,7 +85,7 @@ except Exception as e:
     CLASS_NAMES = []
 
 # ==========================
-# SENSOR DATA FROM THINGSPEAK
+# SENSOR DATA
 # ==========================
 THINGSPEAK_CHANNEL_ID = "3152731"
 READ_API_KEY = "8WGWK6AUAF74H6DJ"
@@ -109,13 +108,13 @@ def fetch_sensor_data():
     return {"temperature": None, "humidity": None, "soil_moisture": None, "timestamp": None}
 
 # ==========================
-# NAVIGATION
+# SIDEBAR
 # ==========================
 st.sidebar.title("Menu")
 page = st.sidebar.radio("Go to", ["About", "AI Detection Panel"])
 
 # ==========================
-# ABOUT
+# ABOUT PAGE
 # ==========================
 if page == "About":
     st.header("🌾 About Smart Farm Doctor")
@@ -134,7 +133,7 @@ if page == "About":
     """)
 
 # ==========================
-# DETECTION PANEL
+# AI DETECTION PANEL
 # ==========================
 elif page == "AI Detection Panel":
     st.header("🧠 Step 1: Capture or Upload Plant Image")
@@ -157,25 +156,17 @@ elif page == "AI Detection Panel":
             preds = model.predict(img_array)
             confidence = np.max(preds)
             predicted_class = CLASS_NAMES[np.argmax(preds)]
+            st.session_state.predicted_class = predicted_class
+            st.session_state.confidence = confidence
 
             st.success(f"🌿 The AI detected: **{predicted_class}** with {confidence*100:.2f}% confidence.")
 
     # ==========================
-    # SENSOR DATA (no page refresh)
+    # SENSOR DATA DISPLAY
     # ==========================
     st.header("🌡 Step 2: Check Live Farm Data")
 
-    if "sensor_data" not in st.session_state:
-        st.session_state.sensor_data = fetch_sensor_data()
-        st.session_state.last_update = time.time()
-
-    # update every 10 seconds
-    if time.time() - st.session_state.last_update > 10:
-        st.session_state.sensor_data = fetch_sensor_data()
-        st.session_state.last_update = time.time()
-
-    sensor = st.session_state.sensor_data
-
+    sensor = fetch_sensor_data()
     if sensor["temperature"]:
         col1, col2, col3 = st.columns(3)
         col1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
@@ -186,20 +177,14 @@ elif page == "AI Detection Panel":
         st.warning("Waiting for live data from your farm sensors...")
 
     # ==========================
-    # AI REPORT
+    # AI REPORT GENERATION
     # ==========================
     st.header("📋 Step 3: Get Simple AI Farm Report")
 
     if "report_text" not in st.session_state:
         st.session_state.report_text = ""
-    if "is_generating" not in st.session_state:
-        st.session_state.is_generating = False
 
-    if uploaded_file and model:
-        st.session_state.predicted_class = predicted_class
-        st.session_state.confidence = confidence
-
-    if st.button("🧾 Generate Easy Farm Report") and not st.session_state.is_generating:
+    if st.button("🧾 Generate Easy Farm Report"):
         if not api_key:
             st.error("Please enter your OpenRouter API key in the sidebar.")
         elif not uploaded_file:
@@ -207,71 +192,53 @@ elif page == "AI Detection Panel":
         elif model is None:
             st.error("AI model not loaded.")
         else:
-            st.session_state.is_generating = True
-            st.session_state.report_text = ""
-            st.info("🧠 The AI is writing your report in simple farmer language...")
+            with st.spinner("🧠 The AI is writing your report in simple farmer language..."):
+                prompt = f"""
+                You are a helpful agricultural assistant speaking to a farmer.
+                Write a clear, short, and easy-to-understand farm report using simple words (no technical terms).
+                Explain what disease was found: {st.session_state.predicted_class} (confidence {st.session_state.confidence*100:.2f}%)
+                and how it affects the plant.
 
-            prompt = f"""
-            You are a helpful agricultural assistant speaking to a farmer.
-            Write a clear, short, and easy-to-understand farm report using simple words (no technical terms).
-            Explain what disease was found: {st.session_state.predicted_class} (confidence {st.session_state.confidence*100:.2f}%)
-            and how it affects the plant.
+                Use this format:
+                - **Disease Name:** (name)
+                - **What It Means:** simple explanation
+                - **What You Should Do:** 2-3 easy steps for treatment
+                - **Prevention Tips:** short and clear advice for next time
 
-            Use this format:
-            - **Disease Name:** (name)
-            - **What It Means:** simple explanation
-            - **What You Should Do:** 2-3 easy steps for treatment
-            - **Prevention Tips:** short and clear advice for next time
+                Farm conditions:
+                - Temperature: {sensor['temperature']} °C
+                - Humidity: {sensor['humidity']} %
+                - Soil Moisture: {sensor['soil_moisture']} %
+                """
 
-            Farm conditions:
-            - Temperature: {sensor['temperature']} °C
-            - Humidity: {sensor['humidity']} %
-            - Soil Moisture: {sensor['soil_moisture']} %
-            """
+                headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+                data = {
+                    "model": "meta-llama/llama-3.1-8b-instruct",
+                    "messages": [
+                        {"role": "system", "content": "You are a friendly farm advisor speaking in simple words."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "max_tokens": 600,
+                    "temperature": 0.7
+                }
 
-            headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-            data = {
-                "model": "meta-llama/llama-3.1-8b-instruct",
-                "messages": [
-                    {"role": "system", "content": "You are a friendly farm advisor speaking in simple words."},
-                    {"role": "user", "content": prompt}
-                ],
-                "max_tokens": 500,
-                "temperature": 0.7,
-                "stream": True
-            }
+                try:
+                    response = requests.post("https://openrouter.ai/api/v1/chat/completions",
+                                             headers=headers, json=data, timeout=60)
+                    response.raise_for_status()
+                    result = response.json()
+                    full_text = result["choices"][0]["message"]["content"]
 
-            report_placeholder = st.empty()
-            full_text = ""
-
-            try:
-                with requests.post("https://openrouter.ai/api/v1/chat/completions",
-                                   headers=headers, json=data, stream=True, timeout=90) as response:
-                    if response.status_code != 200:
-                        st.error(f"OpenRouter API Error: {response.status_code}")
-                    else:
-                        for line in response.iter_lines(decode_unicode=True):
-                            if line and line.startswith("data: "):
-                                try:
-                                    payload = json.loads(line[6:])
-                                    delta = payload.get("choices", [{}])[0].get("delta", {}).get("content", "")
-                                    full_text += delta
-                                    report_placeholder.markdown("### 🌿 Your Farm Report\n" + full_text + "▌")
-                                except Exception:
-                                    continue
-
-                        report_placeholder.markdown("### 🌿 Your Farm Report\n" + full_text)
-                        st.session_state.report_text = full_text
-                        st.session_state.is_generating = False
-                        st.success("✅ Report ready! Scroll down to download it.")
-            except Exception as e:
-                st.error(f"❌ Error generating report: {e}")
-                st.session_state.is_generating = False
+                    st.session_state.report_text = full_text
+                    st.success("✅ Report generated successfully!")
+                    st.markdown("### 🌿 Your Farm Report\n" + full_text)
+                except Exception as e:
+                    st.error(f"❌ Error generating report: {e}")
 
     # ==========================
-    # DOWNLOAD SECTION
+    # DOWNLOAD REPORT
     # ==========================
-    if st.session_state.report_text and not st.session_state.is_generating:
+    if st.session_state.report_text:
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", "B", 16)
