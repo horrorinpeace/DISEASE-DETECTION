@@ -21,7 +21,7 @@ st.set_page_config(
 # ==========================
 # BACKGROUND
 # ==========================
-def set_background(url):
+def set_background("https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1400&q=80"):
     st.markdown(
         f"""
         <style>
@@ -296,3 +296,4 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+
