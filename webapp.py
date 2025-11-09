@@ -61,7 +61,7 @@ set_background()
 # ==========================
 # LOAD MODEL
 # ==========================
-st.title("🌱 Smart Farm Doctor")
+st.title("🌱 FARMDOC AI")
 st.write("A simple tool to **detect plant diseases** and get **easy-to-understand treatment advice** using AI.")
 
 model_path = hf_hub_download(
@@ -123,7 +123,7 @@ page = st.sidebar.radio("Go to", ["About", "AI Detection Panel"])
 # ABOUT PAGE
 # ==========================
 if page == "About":
-    st.header("🌾 About Smart Farm Doctor")
+    st.header("🌾 About FARMDOC AI")
     st.markdown("""
     **Smart Farm Doctor** helps farmers detect plant diseases using their phone’s camera or uploaded images.
 
@@ -186,12 +186,12 @@ elif page == "AI Detection Panel":
     # ==========================
     # AI REPORT GENERATION
     # ==========================
-    st.header("📋 Step 3: Get Simple AI Farm Report")
+    st.header("📋 Step 3: Get AI Farm Report")
 
     if "report_text" not in st.session_state:
         st.session_state.report_text = ""
 
-    if st.button("🧾 Generate Easy Farm Report"):
+    if st.button("🧾 Generate Farm Report"):
         if not api_key:
             st.error("Please enter your OpenRouter API key in the sidebar.")
         elif not uploaded_file:
@@ -262,7 +262,7 @@ elif page == "AI Detection Panel":
         pdf_bytes = pdf.output(dest='S').encode('latin-1')
 
         st.download_button(
-            "📥 Download Simple Report (PDF)",
+            "📥 Download Report (PDF)",
             data=pdf_bytes,
             file_name="farm_report.pdf",
             mime="application/pdf"
@@ -272,4 +272,5 @@ elif page == "AI Detection Panel":
 # FOOTER
 # ==========================
 st.markdown("---")
-st.markdown("🌾 **Smart Farm Doctor © 2025** — Helping Farmers Grow Smarter 🌿")
+st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+
