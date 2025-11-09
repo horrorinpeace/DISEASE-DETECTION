@@ -14,7 +14,7 @@ import json
 # PAGE CONFIG
 # ==========================
 st.set_page_config(
-    page_title="🌾 Smart Farm Doctor",
+    page_title="🌾FARMDOC",
     layout="wide"
 )
 
@@ -58,7 +58,7 @@ set_background("https://images.unsplash.com/photo-1501004318641-b39e6451bec6?aut
 # ==========================
 # LOAD MODEL
 # ==========================
-st.title("🌱 Smart Farm Doctor")
+st.title("🌱 FARMDOC")
 st.write("A simple tool to **detect plant diseases** and get **easy-to-understand treatment advice** using AI.")
 
 model_path = hf_hub_download(
@@ -120,7 +120,7 @@ page = st.sidebar.radio("Go to", ["About", "AI Detection Panel"])
 # ABOUT
 # ==========================
 if page == "About":
-    st.header("🌾 About Smart Farm Doctor")
+    st.header("🌾 About FARMDOC")
     st.markdown("""
     **Smart Farm Doctor** helps farmers detect plant diseases using their phone’s camera or uploaded images.
 
@@ -304,3 +304,4 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+
