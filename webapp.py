@@ -38,7 +38,8 @@ def set_background(url):
             text-shadow:
                 -1px -1px 0 #000,
                 1px -1px 0 #000,
-                -1px 1px 0 #000;
+                -1px 1px 0 #000,
+                1px 1px 0 #000;
         }}
         </style>
         """,
@@ -170,120 +171,116 @@ elif page == "Detection Panel":
     else:
         st.warning("Waiting for ESP32 data from ThingSpeak...")
 
+    # ==========================
+    # LAB REPORT GENERATION (OpenRouter) — FINAL STABLE FIX
+    # ==========================
+    st.subheader("🧾 Generate AI Lab Report")
 
-# ==========================
-# LAB REPORT GENERATION (OpenRouter) — FINAL STABLE FIX
-# ==========================
-st.subheader("🧾 Generate AI Lab Report")
+    # Initialize session state variables
+    if "report_text" not in st.session_state:
+        st.session_state.report_text = ""
+    if "predicted_class" not in st.session_state:
+        st.session_state.predicted_class = ""
+    if "confidence" not in st.session_state:
+        st.session_state.confidence = 0.0
 
-# Initialize session state variables
-if "report_text" not in st.session_state:
-    st.session_state.report_text = ""
-if "predicted_class" not in st.session_state:
-    st.session_state.predicted_class = ""
-if "confidence" not in st.session_state:
-    st.session_state.confidence = 0.0
+    # Save prediction details so Streamlit remembers them
+    if uploaded_file and model:
+        st.session_state.predicted_class = predicted_class
+        st.session_state.confidence = confidence
 
-# Save prediction details so Streamlit remembers them
-if uploaded_file and model:
-    st.session_state.predicted_class = predicted_class
-    st.session_state.confidence = confidence
+    if st.button("Generate Lab Report"):
+        if not api_key:
+            st.error("Please enter your OpenRouter API key in the sidebar.")
+        elif uploaded_file is None:
+            st.error("Please upload or capture an image first.")
+        elif model is None:
+            st.error("AI model not loaded.")
+        else:
+            st.info("🧠 Generating AI-based lab report using OpenRouter...")
 
-if st.button("Generate Lab Report"):
-    if not api_key:
-        st.error("Please enter your OpenRouter API key in the sidebar.")
-    elif uploaded_file is None:
-        st.error("Please upload or capture an image first.")
-    elif model is None:
-        st.error("AI model not loaded.")
-    else:
-        st.info("🧠 Generating AI-based lab report using OpenRouter...")
+            # Construct the text prompt
+            prompt = f"""
+            You are an agricultural scientist.
+            Create a concise lab report with recommendations based on:
+            - Detected disease: {st.session_state.predicted_class} (confidence {st.session_state.confidence*100:.2f}%)
+            - Temperature: {sensor['temperature']} °C
+            - Humidity: {sensor['humidity']} %
+            - Soil moisture: {sensor['soil_moisture']} %
+            Include sections: Diagnosis, Observations, Recommended Actions, Preventive Measures.
+            """
 
-        # Construct the text prompt
-        prompt = f"""
-        You are an agricultural scientist.
-        Create a concise lab report with recommendations based on:
-        - Detected disease: {st.session_state.predicted_class} (confidence {st.session_state.confidence*100:.2f}%)
-        - Temperature: {sensor['temperature']} °C
-        - Humidity: {sensor['humidity']} %
-        - Soil moisture: {sensor['soil_moisture']} %
-        Include sections: Diagnosis, Observations, Recommended Actions, Preventive Measures.
-        """
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
 
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
+            data = {
+                "model": "meta-llama/llama-3.1-8b-instruct",
+                "messages": [
+                    {"role": "system", "content": "You are an expert agricultural scientist writing detailed reports."},
+                    {"role": "user", "content": prompt}
+                ],
+                "max_tokens": 700,
+                "temperature": 0.7
+            }
 
-        data = {
-            "model": "meta-llama/llama-3.1-8b-instruct",
-            "messages": [
-                {"role": "system", "content": "You are an expert agricultural scientist writing detailed reports."},
-                {"role": "user", "content": prompt}
-            ],
-            "max_tokens": 700,
-            "temperature": 0.7
-        }
+            try:
+                response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data, timeout=60)
 
-        try:
-            response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data, timeout=60)
+                if response.status_code == 200:
+                    result = response.json()
+                    report_text = ""
+                    if "choices" in result and len(result["choices"]) > 0:
+                        choice = result["choices"][0]
+                        if "message" in choice and "content" in choice["message"]:
+                            report_text = choice["message"]["content"].strip()
+                        elif "text" in choice:
+                            report_text = choice["text"].strip()
 
-            if response.status_code == 200:
-                result = response.json()
-                # Try both formats
-                report_text = ""
-                if "choices" in result and len(result["choices"]) > 0:
-                    choice = result["choices"][0]
-                    if "message" in choice and "content" in choice["message"]:
-                        report_text = choice["message"]["content"].strip()
-                    elif "text" in choice:
-                        report_text = choice["text"].strip()
+                    if report_text:
+                        st.session_state.report_text = report_text
+                        st.success("✅ Lab report generated successfully!")
+                    else:
+                        st.warning("⚠️ AI response was empty. Try again later.")
 
-                if report_text:
-                    st.session_state.report_text = report_text  # Save text permanently
-                    st.success("✅ Lab report generated successfully!")
                 else:
-                    st.warning("⚠️ AI response was empty. Try again later.")
+                    st.error(f"OpenRouter API Error: {response.status_code}")
+                    st.text_area("API Response", response.text, height=200)
 
-            else:
-                st.error(f"OpenRouter API Error: {response.status_code}")
-                st.text_area("API Response", response.text, height=200)
+            except requests.exceptions.Timeout:
+                st.error("⏱️ Request timed out. Please try again.")
+            except Exception as e:
+                st.error(f"❌ Error generating report: {e}")
 
-        except requests.exceptions.Timeout:
-            st.error("⏱️ Request timed out. Please try again.")
-        except Exception as e:
-            st.error(f"❌ Error generating report: {e}")
+    # ==========================
+    # DISPLAY REPORT (Persistent)
+    # ==========================
+    if st.session_state.report_text:
+        st.markdown("### 🧾 AI Lab Report")
+        st.markdown(st.session_state.report_text)
 
-# ==========================
-# DISPLAY REPORT (Persistent)
-# ==========================
-if st.session_state.report_text:
-    st.markdown("### 🧾 AI Lab Report")
-    st.markdown(st.session_state.report_text)
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 16)
+        pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
+        pdf.set_font("Arial", "", 12)
+        pdf.multi_cell(0, 8, st.session_state.report_text)
 
-    # PDF generation (persists even after rerun)
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
-    pdf.set_font("Arial", "", 12)
-    pdf.multi_cell(0, 8, st.session_state.report_text)
+        temp_img_path = "temp_image.jpg"
+        if uploaded_file:
+            with open(temp_img_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            pdf.image(temp_img_path, x=10, y=None, w=100)
 
-    temp_img_path = "temp_image.jpg"
-    if uploaded_file:
-        with open(temp_img_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        pdf.image(temp_img_path, x=10, y=None, w=100)
+        pdf_bytes = pdf.output(dest='S').encode('latin-1')
 
-    pdf_bytes = pdf.output(dest='S').encode('latin-1')
-
-    st.download_button(
-        "📥 Download PDF",
-        data=pdf_bytes,
-        file_name="lab_report.pdf",
-        mime="application/pdf"
-    )
-
+        st.download_button(
+            "📥 Download PDF",
+            data=pdf_bytes,
+            file_name="lab_report.pdf",
+            mime="application/pdf"
+        )
 
 # ==========================
 # FOOTER
