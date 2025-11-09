@@ -21,37 +21,42 @@ st.set_page_config(
 # ==========================
 # BACKGROUND
 # ==========================
-def set_background(url):
+def set_background():
     st.markdown(
-        f"""
+        """
         <style>
-        .stApp {{
-            background: url("{url}") no-repeat center center fixed;
+        .stApp {
+            background: linear-gradient(135deg, #1e1e2f 0%, #2e2e3f 100%) no-repeat center center fixed;
             background-size: cover;
-        }}
-        .block-container {{
-            background-color: rgba(0, 0, 0, 0.55) !important;
+        }
+        .block-container {
+            background-color: rgba(255, 255, 255, 0.05) !important;
             border-radius: 20px;
             padding: 25px !important;
-        }}
-        h1, h2, h3, h4, h5, h6, p, div, span {{
+        }
+        h1, h2, h3, h4, h5, h6, p, div, span {
             color: white !important;
             font-family: 'Segoe UI', sans-serif;
-        }}
-        .stButton>button {{
+        }
+        .stButton>button {
             background-color: #34a853 !important;
             color: white !important;
             font-size: 18px !important;
             border-radius: 12px !important;
             padding: 10px 25px !important;
-        }}
+        }
+
+        /* ✅ Flip live camera preview horizontally */
+        video {
+            transform: scaleX(-1) !important;
+        }
         </style>
         """,
         unsafe_allow_html=True
     )
 
-# ✅ Updated background URL only
-set_background("https://media.istockphoto.com/id/1355556716/photo/organic-farming.webp?b=1&s=612x612&w=0&k=20&c=xueWl9im4owKfKCNd6KpPiCUpkM2Rp8c4DjfsFUDu1E=")
+# ✅ Minimal clean gradient background
+set_background()
 
 # ==========================
 # LOAD MODEL
@@ -141,13 +146,14 @@ elif page == "AI Detection Panel":
 
     api_key = st.sidebar.text_input("🔐 Enter your OpenRouter API key (starts with sk-or-...)", type="password")
 
+    # 🎥 Camera live view is now mirrored via CSS
     uploaded_file = st.camera_input("📸 Take a photo of your crop leaf")
     if uploaded_file is None:
         uploaded_file = st.file_uploader("Or upload a leaf image", type=["png", "jpg", "jpeg"])
 
     if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="🪴 This is the image being analyzed", use_column_width=True)
+        st.image(image, caption="🪴 This is the captured image being analyzed", use_column_width=True)
 
         if model:
             img_resized = image.resize((224, 224))
