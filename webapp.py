@@ -14,7 +14,7 @@ import json
 # PAGE CONFIG
 # ==========================
 st.set_page_config(
-    page_title="🌾FARMDOC",
+    page_title="🌾 Smart Farm Doctor",
     layout="wide"
 )
 
@@ -53,12 +53,12 @@ def set_background(url):
         unsafe_allow_html=True
     )
 
-set_background("https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1400&q=80")
+set_background("https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=1200&q=80")
 
 # ==========================
 # LOAD MODEL
 # ==========================
-st.title("🌱 FARMDOC")
+st.title("🌱 Smart Farm Doctor")
 st.write("A simple tool to **detect plant diseases** and get **easy-to-understand treatment advice** using AI.")
 
 model_path = hf_hub_download(
@@ -120,9 +120,9 @@ page = st.sidebar.radio("Go to", ["About", "AI Detection Panel"])
 # ABOUT
 # ==========================
 if page == "About":
-    st.header("🌾 About FARMDOC")
+    st.header("🌾 About Smart Farm Doctor")
     st.markdown("""
-    **FARMDOC** helps farmers detect plant diseases using their phone’s camera or uploaded images.
+    **Smart Farm Doctor** helps farmers detect plant diseases using their phone’s camera or uploaded images.
 
     It also gives **simple, clear advice** on:
     - What the disease is  
@@ -163,20 +163,13 @@ elif page == "AI Detection Panel":
             st.success(f"🌿 The AI detected: **{predicted_class}** with {confidence*100:.2f}% confidence.")
 
     # ==========================
-    # SENSOR DATA (no full refresh)
+    # SENSOR DATA
     # ==========================
     st.header("🌡 Step 2: Check Live Farm Data")
-    if "last_sensor_data" not in st.session_state:
-        st.session_state.last_sensor_data = fetch_sensor_data()
 
-    # Fetch new data every 10s in background but don’t reset session
-    import time
-    current_time = int(time.time())
-    if "last_update" not in st.session_state or current_time - st.session_state.last_update > 10:
-        st.session_state.last_sensor_data = fetch_sensor_data()
-        st.session_state.last_update = current_time
-
-    sensor = st.session_state.last_sensor_data
+    from streamlit_autorefresh import st_autorefresh
+    st_autorefresh(interval=10000, key="sensor_refresh")
+    sensor = fetch_sensor_data()
 
     if sensor["temperature"]:
         col1, col2, col3 = st.columns(3)
@@ -190,7 +183,7 @@ elif page == "AI Detection Panel":
     # ==========================
     # AI REPORT (Simplified Language)
     # ==========================
-    st.header("📋 Step 3: Get AI Farm Report")
+    st.header("📋 Step 3: Get Simple AI Farm Report")
 
     if "report_text" not in st.session_state:
         st.session_state.report_text = ""
@@ -201,7 +194,7 @@ elif page == "AI Detection Panel":
         st.session_state.predicted_class = predicted_class
         st.session_state.confidence = confidence
 
-    if st.button("🧾 Generate Farm Report") and not st.session_state.is_generating:
+    if st.button("🧾 Generate Easy Farm Report") and not st.session_state.is_generating:
         if not api_key:
             st.error("Please enter your OpenRouter API key in the sidebar.")
         elif not uploaded_file:
@@ -211,7 +204,7 @@ elif page == "AI Detection Panel":
         else:
             st.session_state.is_generating = True
             st.session_state.report_text = ""
-            st.info("🧠 The AI is writing your report in simple language...")
+            st.info("🧠 The AI is writing your report in simple farmer language...")
 
             prompt = f"""
             You are a helpful agricultural assistant speaking to a farmer.
@@ -243,44 +236,35 @@ elif page == "AI Detection Panel":
                 "stream": True
             }
 
-            # Use container that holds full text dynamically
             report_placeholder = st.empty()
             full_text = ""
 
             try:
-                response = requests.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    headers=headers,
-                    json=data,
-                    stream=True,
-                    timeout=90
-                )
+                with requests.post("https://openrouter.ai/api/v1/chat/completions",
+                                   headers=headers, json=data, stream=True, timeout=90) as response:
+                    if response.status_code != 200:
+                        st.error(f"OpenRouter API Error: {response.status_code}")
+                    else:
+                        for line in response.iter_lines():
+                            if line:
+                                try:
+                                    decoded = line.decode("utf-8")
+                                    if decoded.startswith("data: "):
+                                        payload = json.loads(decoded[6:])
+                                        delta = payload.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                                        full_text += delta
+                                        report_placeholder.markdown(full_text + "▌")
+                                except Exception:
+                                    continue
 
-                if response.status_code != 200:
-                    st.error(f"OpenRouter API Error: {response.status_code}")
-                else:
-                    # Keep updating the report text while streaming
-                    for line in response.iter_lines(decode_unicode=True):
-                        if line and line.startswith("data: "):
-                            try:
-                                payload = json.loads(line[6:])
-                                delta = payload.get("choices", [{}])[0].get("delta", {}).get("content", "")
-                                if delta:
-                                    full_text += delta
-                                    report_placeholder.markdown("### 🌿 Your Farm Report\n" + full_text + "▌")
-                            except json.JSONDecodeError:
-                                continue
-
-                    # Final render after streaming completes
-                    report_placeholder.markdown("### 🌿 Your Farm Report\n" + full_text)
-                    st.session_state.report_text = full_text
-                    st.success("✅ Report ready! Scroll down to download it.")
+                        report_placeholder.markdown("### 🌿 Your Farm Report\n" + full_text)
+                        st.session_state.report_text = full_text
+                        st.session_state.is_generating = False
+                        st.success("✅ Report ready! Scroll down to download it.")
 
             except Exception as e:
                 st.error(f"❌ Error generating report: {e}")
-            finally:
                 st.session_state.is_generating = False
-
 
     # ==========================
     # DOWNLOAD SECTION
@@ -302,7 +286,7 @@ elif page == "AI Detection Panel":
         pdf_bytes = pdf.output(dest='S').encode('latin-1')
 
         st.download_button(
-            "📥 Download Report (PDF)",
+            "📥 Download Simple Report (PDF)",
             data=pdf_bytes,
             file_name="farm_report.pdf",
             mime="application/pdf"
@@ -313,6 +297,3 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
-
-
-
