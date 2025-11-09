@@ -21,7 +21,7 @@ st.set_page_config(
 # ==========================
 # BACKGROUND
 # ==========================
-def set_background("https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1400&q=80"):
+def set_background(url):
     st.markdown(
         f"""
         <style>
@@ -53,7 +53,7 @@ def set_background("https://images.unsplash.com/photo-1501004318641-b39e6451bec6
         unsafe_allow_html=True
     )
 
-set_background("https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=1200&q=80")
+set_background("https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1400&q=80")
 
 # ==========================
 # LOAD MODEL
@@ -296,4 +296,5 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+
 
