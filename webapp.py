@@ -243,35 +243,44 @@ elif page == "AI Detection Panel":
                 "stream": True
             }
 
+            # Use container that holds full text dynamically
             report_placeholder = st.empty()
             full_text = ""
 
             try:
-                with requests.post("https://openrouter.ai/api/v1/chat/completions",
-                                   headers=headers, json=data, stream=True, timeout=90) as response:
-                    if response.status_code != 200:
-                        st.error(f"OpenRouter API Error: {response.status_code}")
-                    else:
-                        for line in response.iter_lines():
-                            if line:
-                                try:
-                                    decoded = line.decode("utf-8")
-                                    if decoded.startswith("data: "):
-                                        payload = json.loads(decoded[6:])
-                                        delta = payload.get("choices", [{}])[0].get("delta", {}).get("content", "")
-                                        full_text += delta
-                                        report_placeholder.markdown(full_text + "▌")
-                                except Exception:
-                                    continue
+                response = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=data,
+                    stream=True,
+                    timeout=90
+                )
 
-                        report_placeholder.markdown("### 🌿 Your Farm Report\n" + full_text)
-                        st.session_state.report_text = full_text
-                        st.session_state.is_generating = False
-                        st.success("✅ Report ready! Scroll down to download it.")
+                if response.status_code != 200:
+                    st.error(f"OpenRouter API Error: {response.status_code}")
+                else:
+                    # Keep updating the report text while streaming
+                    for line in response.iter_lines(decode_unicode=True):
+                        if line and line.startswith("data: "):
+                            try:
+                                payload = json.loads(line[6:])
+                                delta = payload.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                                if delta:
+                                    full_text += delta
+                                    report_placeholder.markdown("### 🌿 Your Farm Report\n" + full_text + "▌")
+                            except json.JSONDecodeError:
+                                continue
+
+                    # Final render after streaming completes
+                    report_placeholder.markdown("### 🌿 Your Farm Report\n" + full_text)
+                    st.session_state.report_text = full_text
+                    st.success("✅ Report ready! Scroll down to download it.")
 
             except Exception as e:
                 st.error(f"❌ Error generating report: {e}")
+            finally:
                 st.session_state.is_generating = False
+
 
     # ==========================
     # DOWNLOAD SECTION
@@ -304,5 +313,6 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+
 
 
