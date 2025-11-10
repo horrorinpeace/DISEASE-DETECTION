@@ -173,7 +173,7 @@ elif page == "AI Detection Panel":
 st.header("🌡 Step 2: Check Live Farm Data")
 
 # 🔁 Auto-refresh every 20 seconds (ThingSpeak limit = 15 sec min)
-count = st.experimental_autorefresh(interval=20000, limit=None, key="sensor_refresh")
+count = st_autorefresh(interval=20000, limit=None, key="sensor_refresh")
 
 sensor = fetch_sensor_data()
 
@@ -277,6 +277,7 @@ else:
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+
 
 
 
