@@ -50,7 +50,7 @@ def set_background(url):
 set_background("https://images.unsplash.com/photo-1503264116251-35a269479413?auto=format&fit=crop&w=1200&q=80")
 
 # ==========================
-# LOAD MODEL
+# LOAD MODEL (Fixed)
 # ==========================
 model_path = hf_hub_download(
     repo_id="qwertymaninwork/Plant_Disease_Detection_System",
@@ -59,8 +59,25 @@ model_path = hf_hub_download(
 
 @st.cache_resource
 def load_model():
-    model = tf.keras.models.load_model(model_path, compile=False, safe_mode=False)
-    return model
+    try:
+        # Try to load full model (architecture + weights)
+        model = tf.keras.models.load_model(model_path, compile=False)
+        st.success("✅ Full Keras model loaded successfully.")
+        return model
+    except Exception as e:
+        st.warning(f"⚠ Full model load failed ({e}). Trying weight-only mode...")
+        # Rebuild architecture manually and load weights
+        base_model = tf.keras.applications.MobileNetV2(
+            input_shape=(224, 224, 3),
+            include_top=False,
+            weights=None
+        )
+        x = tf.keras.layers.GlobalAveragePooling2D()(base_model.output)
+        x = tf.keras.layers.Dense(27, activation='softmax')(x)  # 27 classes
+        model = tf.keras.Model(inputs=base_model.input, outputs=x)
+        model.load_weights(model_path)
+        st.success("✅ Model weights loaded successfully into MobileNetV2 base.")
+        return model
 
 try:
     model = load_model()
@@ -75,7 +92,7 @@ try:
         'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT', 'WHEAT YELLOW RUST'
     ]
 except Exception as e:
-    st.warning(f"⚠ Could not load model: {e}")
+    st.error(f"❌ Model load failed: {e}")
     model = None
     CLASS_NAMES = []
 
@@ -142,6 +159,7 @@ elif page == "Detection Panel":
             img_resized = image.resize((224, 224))
             img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
             img_array = np.expand_dims(img_array, axis=0)
+            img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
 
             preds = model.predict(img_array)
             confidence = np.max(preds)
@@ -173,7 +191,7 @@ elif page == "Detection Panel":
         st.warning("Waiting for ESP32 data from ThingSpeak...")
 
     # ==========================
-    # LAB REPORT GENERATION (Live Streaming - FINAL FIX)
+    # LAB REPORT GENERATION (Streaming)
     # ==========================
     st.subheader("🧾 Generate AI Lab Report")
 
@@ -250,7 +268,6 @@ elif page == "Detection Panel":
                                 except Exception:
                                     continue
 
-                        # Final update once done
                         report_placeholder.markdown("### 🧾 AI Lab Report\n" + full_text)
                         st.session_state.report_text = full_text
                         st.session_state.is_generating = False
@@ -260,7 +277,6 @@ elif page == "Detection Panel":
                 st.error(f"❌ Error generating report: {e}")
                 st.session_state.is_generating = False
 
-    # Display final text only after generation is fully complete (no double render)
     if st.session_state.report_text and not st.session_state.is_generating:
         pdf = FPDF()
         pdf.add_page()
