@@ -175,7 +175,7 @@ elif page == "AI Detection Panel":
     st.header("🌡 Step 2: Check Live Farm Data")
     count = st_autorefresh(interval=5000, limit=None, key="sensor_refresh")
 
-      sensor = fetch_sensor_data()
+    sensor = fetch_sensor_data()
 
     sensor = fetch_sensor_data()
     if sensor["temperature"]:
@@ -277,4 +277,5 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **Smart Farm Doctor © 2025** — Helping Farmers Grow Smarter 🌿")
+
 
