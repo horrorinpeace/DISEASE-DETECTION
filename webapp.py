@@ -46,8 +46,6 @@ def set_background():
             border-radius: 12px !important;
             padding: 10px 25px !important;
         }
-
-        /* ✅ Flip live camera preview horizontally */
         video {
             transform: scaleX(-1) !important;
         }
@@ -56,7 +54,6 @@ def set_background():
         unsafe_allow_html=True
     )
 
-# ✅ Minimal clean gradient background
 set_background()
 
 # ==========================
@@ -92,7 +89,7 @@ except Exception as e:
     CLASS_NAMES = []
 
 # ==========================
-# SENSOR DATA
+# SENSOR DATA FETCH
 # ==========================
 THINGSPEAK_CHANNEL_ID = "3152731"
 READ_API_KEY = "8WGWK6AUAF74H6DJ"
@@ -147,7 +144,7 @@ elif page == "AI Detection Panel":
 
     api_key = st.sidebar.text_input("🔐 Enter your OpenRouter API key (starts with sk-or-...)", type="password")
 
-    # 🎥 Camera live view is now mirrored via CSS
+    # 🎥 Camera or Upload
     uploaded_file = st.camera_input("📸 Take a photo of your crop leaf")
     if uploaded_file is None:
         uploaded_file = st.file_uploader("Or upload a leaf image", type=["png", "jpg", "jpeg"])
@@ -160,25 +157,20 @@ elif page == "AI Detection Panel":
             img_resized = image.resize((224, 224))
             img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
             img_array = np.expand_dims(img_array, axis=0)
-
             preds = model.predict(img_array)
             confidence = np.max(preds)
             predicted_class = CLASS_NAMES[np.argmax(preds)]
             st.session_state.predicted_class = predicted_class
             st.session_state.confidence = confidence
-
             st.success(f"🌿 The AI detected: **{predicted_class}** with {confidence*100:.2f}% confidence.")
 
     # ==========================
     # SENSOR DATA DISPLAY (Auto Refresh)
     # ==========================
     st.header("🌡 Step 2: Check Live Farm Data")
-
-    # 🔁 Auto-refresh every 20 seconds (ThingSpeak limit = 15 sec min)
     count = st_autorefresh(interval=20000, limit=None, key="sensor_refresh")
 
     sensor = fetch_sensor_data()
-
     if sensor["temperature"]:
         col1, col2, col3 = st.columns(3)
         col1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
@@ -189,7 +181,7 @@ elif page == "AI Detection Panel":
         st.warning("Waiting for live data from your farm sensors...")
 
     # ==========================
-    # AI REPORT GENERATION
+    # REPORT GENERATION
     # ==========================
     st.header("Step 3: Get AI Farm Report")
 
@@ -207,15 +199,14 @@ elif page == "AI Detection Panel":
             with st.spinner("🧠 The AI is writing your report in simple farmer language..."):
                 prompt = f"""
                 You are a helpful agricultural assistant speaking to a farmer.
-                Write a clear, short, and easy-to-understand farm report using simple words (no technical terms).
-                Explain what disease was found: {st.session_state.predicted_class} (confidence {st.session_state.confidence*100:.2f}%)
-                and how it affects the plant.
+                Write a clear, short, and easy-to-understand farm report using simple words.
+                Disease: {st.session_state.predicted_class} ({st.session_state.confidence*100:.2f}% confidence)
 
-                Use this format:
-                - **Disease Name:** (name)
-                - **What It Means:** simple explanation
-                - **What You Should Do:** 2-3 easy steps for treatment
-                - **Prevention Tips:** short and clear advice for next time
+                Include:
+                - **Disease Name**
+                - **What It Means**
+                - **What You Should Do**
+                - **Prevention Tips**
 
                 Farm conditions:
                 - Temperature: {sensor['temperature']} °C
@@ -237,10 +228,8 @@ elif page == "AI Detection Panel":
                 try:
                     response = requests.post("https://openrouter.ai/api/v1/chat/completions",
                                              headers=headers, json=data, timeout=60)
-                    response.raise_for_status()
                     result = response.json()
                     full_text = result["choices"][0]["message"]["content"]
-
                     st.session_state.report_text = full_text
                     st.success("✅ Report generated successfully!")
                     st.markdown("### 🌿 Your Farm Report\n" + full_text)
