@@ -167,19 +167,13 @@ elif page == "AI Detection Panel":
             st.session_state.confidence = confidence
 
             st.success(f"🌿 The AI detected: **{predicted_class}** with {confidence*100:.2f}% confidence.")
-
 # ==========================
-# SENSOR DATA DISPLAY
+# SENSOR DATA DISPLAY (Auto Refresh)
 # ==========================
 st.header("🌡 Step 2: Check Live Farm Data")
 
-# 🔁 Automatically refresh every 20 seconds
-st_autorefresh = st.experimental_rerun  # fallback for clarity if old Streamlit version
-try:
-    count = st.experimental_rerun()
-except:
-    from streamlit_autorefresh import st_autorefresh
-    count = st_autorefresh(interval=20000, limit=None, key="sensor_refresh")
+# 🔁 Auto-refresh every 20 seconds (ThingSpeak limit = 15 sec min)
+count = st.experimental_autorefresh(interval=20000, limit=None, key="sensor_refresh")
 
 sensor = fetch_sensor_data()
 
@@ -283,6 +277,7 @@ else:
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+
 
 
 
