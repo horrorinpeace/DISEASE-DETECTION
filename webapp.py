@@ -2,6 +2,7 @@ import io
 import numpy as np
 from PIL import Image
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 import requests
 from fpdf import FPDF
 from huggingface_hub import hf_hub_download
@@ -277,6 +278,7 @@ else:
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+
 
 
 
