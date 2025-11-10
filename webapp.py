@@ -175,22 +175,46 @@ elif page == "AI Detection Panel":
                 except Exception as e:
                     st.error(f"🚫 PlantNet API error: {e}")
 
-        # ===== STEP 2: DISEASE DETECTION =====
+        # ===== STEP 2: DISEASE DETECTION (FILTERED BY PLANT TYPE) =====
         if model and "species" in st.session_state:
-            with st.spinner("🔬 Detecting possible disease using local AI..."):
-                img_resized = image.resize((224, 224))
-                img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
-                img_array = np.expand_dims(img_array, axis=0)
-                preds = model.predict(img_array)
+            DISEASE_GROUPS = {
+                "millet": ["HEALTHY MILLET", "MILLETS BLAST", "MILLETS RUST"],
+                "potato": ["HEALTHY POTATO", "POTATO EARLY BLIGHT", "POTATO LATE BLIGHT"],
+                "rice": ["HEALTHY RICE", "RICE BACTERIAL BLIGHT", "RICE BROWN SPOT", "RICE LEAF SMUT"],
+                "sugarcane": ["HEALTHY SUGARCANE", "SUGARCANE RED ROT", "SUGARCANE RUST", "SUGARCANE YELLOW"],
+                "tea": ["HEALTHY TEA LEAF", "TEA GRAY BLIGHT", "TEA GREEN MIRID BUG", "TEA HELOPELTIS"],
+                "tomato": ["HEALTHY TOMATO", "TOMATO LEAF MOLD", "TOMATO MOSAIC VIRUS", "TOMATO SEPTORIA LEAF SPOT"],
+                "wheat": ["HEALTHY WHEAT", "WHEAT BROWN RUST", "WHEAT LOOSE SMUT", "WHEAT YELLOW RUST"]
+            }
 
-                disease_index = np.argmax(preds)
-                confidence_disease = np.max(preds)
-                predicted_disease = CLASS_NAMES[disease_index]
+            species_name = st.session_state["species"].lower()
+            plant_type = None
+            for key in DISEASE_GROUPS.keys():
+                if key in species_name:
+                    plant_type = key
+                    break
 
-                st.session_state["disease"] = predicted_disease
-                st.session_state["disease_confidence"] = confidence_disease
+            if not plant_type:
+                st.info(f"🌽 The detected plant ({st.session_state['species']}) is not supported for disease analysis yet.")
+            else:
+                with st.spinner(f"🔬 Detecting possible {plant_type.title()} diseases..."):
+                    img_resized = image.resize((224, 224))
+                    img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
+                    img_array = np.expand_dims(img_array, axis=0)
+                    preds = model.predict(img_array)[0]
 
-                st.success(f"🧬 Disease Detected: **{predicted_disease}** ({confidence_disease*100:.2f}% confidence)")
+                    valid_classes = DISEASE_GROUPS[plant_type]
+                    valid_indices = [CLASS_NAMES.index(c) for c in valid_classes]
+                    filtered_preds = [preds[i] for i in valid_indices]
+
+                    best_idx = np.argmax(filtered_preds)
+                    predicted_disease = valid_classes[best_idx]
+                    confidence_disease = filtered_preds[best_idx]
+
+                    st.session_state["disease"] = predicted_disease
+                    st.session_state["disease_confidence"] = confidence_disease
+
+                    st.success(f"🧬 Disease Detected: **{predicted_disease}** ({confidence_disease*100:.2f}% confidence)")
 
     # ===== STEP 3: LIVE FARM DATA =====
     st.header("🌡 Step 2: Live Farm Conditions")
