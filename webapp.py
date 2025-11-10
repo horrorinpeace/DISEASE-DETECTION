@@ -2,6 +2,7 @@ import io
 import numpy as np
 from PIL import Image
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 import requests
 from fpdf import FPDF
 from huggingface_hub import hf_hub_download
@@ -172,6 +173,9 @@ elif page == "AI Detection Panel":
     # SENSOR DATA DISPLAY
     # ==========================
     st.header("🌡 Step 2: Check Live Farm Data")
+    count = st_autorefresh(interval=5000, limit=None, key="sensor_refresh")
+
+      sensor = fetch_sensor_data()
 
     sensor = fetch_sensor_data()
     if sensor["temperature"]:
@@ -273,3 +277,4 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **Smart Farm Doctor © 2025** — Helping Farmers Grow Smarter 🌿")
+
