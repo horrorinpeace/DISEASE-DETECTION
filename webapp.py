@@ -123,7 +123,7 @@ page = st.sidebar.radio("Go to", ["About", "AI Detection Panel"])
 # ABOUT PAGE
 # ==========================
 if page == "About":
-    st.header("🌾 About FARMDOC AI")
+    st.header("About FARMDOC AI")
     st.markdown("""
     The **FarmDoc AI** helps farmers detect plant diseases using their phone’s camera or uploaded images.
 
@@ -135,14 +135,14 @@ if page == "About":
 
     It connects with your farm sensors (ESP32 + ThingSpeak) to include weather and soil data in your report.
 
-    📷 Just take a photo → 🧠 Let AI detect → 📋 Get your easy farm report.
+     Take a photo → Let AI detect → Get your farm report.
     """)
 
 # ==========================
 # AI DETECTION PANEL
 # ==========================
 elif page == "AI Detection Panel":
-    st.header("🧠 Step 1: Capture or Upload Plant Image")
+    st.header("Step 1: Capture or Upload Plant Image")
 
     api_key = st.sidebar.text_input("🔐 Enter your OpenRouter API key (starts with sk-or-...)", type="password")
 
@@ -153,7 +153,7 @@ elif page == "AI Detection Panel":
 
     if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="🪴 This is the captured image being analyzed", use_column_width=True)
+        st.image(image, caption="This is the captured image being analyzed", use_column_width=True)
 
         if model:
             img_resized = image.resize((224, 224))
@@ -186,7 +186,7 @@ elif page == "AI Detection Panel":
     # ==========================
     # AI REPORT GENERATION
     # ==========================
-    st.header("📋 Step 3: Get AI Farm Report")
+    st.header("Step 3: Get AI Farm Report")
 
     if "report_text" not in st.session_state:
         st.session_state.report_text = ""
@@ -273,5 +273,6 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+
 
 
