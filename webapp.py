@@ -2,7 +2,6 @@ import io
 import numpy as np
 from PIL import Image
 import streamlit as st
-from streamlit_autorefresh import st_autorefresh
 import requests
 from fpdf import FPDF
 from huggingface_hub import hf_hub_download
@@ -46,6 +45,8 @@ def set_background():
             border-radius: 12px !important;
             padding: 10px 25px !important;
         }
+
+        /* ✅ Flip live camera preview horizontally */
         video {
             transform: scaleX(-1) !important;
         }
@@ -54,12 +55,13 @@ def set_background():
         unsafe_allow_html=True
     )
 
+# ✅ Minimal clean gradient background
 set_background()
 
 # ==========================
 # LOAD MODEL
 # ==========================
-st.title("🌱 FARMDOC AI")
+st.title("🌱 Smart Farm Doctor")
 st.write("A simple tool to **detect plant diseases** and get **easy-to-understand treatment advice** using AI.")
 
 model_path = hf_hub_download(
@@ -89,7 +91,7 @@ except Exception as e:
     CLASS_NAMES = []
 
 # ==========================
-# SENSOR DATA FETCH
+# SENSOR DATA
 # ==========================
 THINGSPEAK_CHANNEL_ID = "3152731"
 READ_API_KEY = "8WGWK6AUAF74H6DJ"
@@ -121,9 +123,9 @@ page = st.sidebar.radio("Go to", ["About", "AI Detection Panel"])
 # ABOUT PAGE
 # ==========================
 if page == "About":
-    st.header("About FARMDOC AI")
+    st.header("🌾 About Smart Farm Doctor")
     st.markdown("""
-    The **FarmDoc AI** helps farmers detect plant diseases using their phone’s camera or uploaded images.
+    **Smart Farm Doctor** helps farmers detect plant diseases using their phone’s camera or uploaded images.
 
     It also gives **simple, clear advice** on:
     - What the disease is  
@@ -133,42 +135,43 @@ if page == "About":
 
     It connects with your farm sensors (ESP32 + ThingSpeak) to include weather and soil data in your report.
 
-    Take a photo → Let AI detect → Get your farm report.
+    📷 Just take a photo → 🧠 Let AI detect → 📋 Get your easy farm report.
     """)
 
 # ==========================
 # AI DETECTION PANEL
 # ==========================
 elif page == "AI Detection Panel":
-    st.header("Step 1: Capture or Upload Plant Image")
+    st.header("🧠 Step 1: Capture or Upload Plant Image")
 
     api_key = st.sidebar.text_input("🔐 Enter your OpenRouter API key (starts with sk-or-...)", type="password")
 
-    # 🎥 Camera or Upload
+    # 🎥 Camera live view is now mirrored via CSS
     uploaded_file = st.camera_input("📸 Take a photo of your crop leaf")
     if uploaded_file is None:
         uploaded_file = st.file_uploader("Or upload a leaf image", type=["png", "jpg", "jpeg"])
 
     if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="This is the captured image being analyzed", use_column_width=True)
+        st.image(image, caption="🪴 This is the captured image being analyzed", use_column_width=True)
 
         if model:
             img_resized = image.resize((224, 224))
             img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
             img_array = np.expand_dims(img_array, axis=0)
+
             preds = model.predict(img_array)
             confidence = np.max(preds)
             predicted_class = CLASS_NAMES[np.argmax(preds)]
             st.session_state.predicted_class = predicted_class
             st.session_state.confidence = confidence
+
             st.success(f"🌿 The AI detected: **{predicted_class}** with {confidence*100:.2f}% confidence.")
 
     # ==========================
-    # SENSOR DATA DISPLAY (Auto Refresh)
+    # SENSOR DATA DISPLAY
     # ==========================
     st.header("🌡 Step 2: Check Live Farm Data")
-    count = st_autorefresh(interval=20000, limit=None, key="sensor_refresh")
 
     sensor = fetch_sensor_data()
     if sensor["temperature"]:
@@ -181,14 +184,14 @@ elif page == "AI Detection Panel":
         st.warning("Waiting for live data from your farm sensors...")
 
     # ==========================
-    # REPORT GENERATION
+    # AI REPORT GENERATION
     # ==========================
-    st.header("Step 3: Get AI Farm Report")
+    st.header("📋 Step 3: Get Simple AI Farm Report")
 
     if "report_text" not in st.session_state:
         st.session_state.report_text = ""
 
-    if st.button("🧾 Generate Farm Report"):
+    if st.button("🧾 Generate Easy Farm Report"):
         if not api_key:
             st.error("Please enter your OpenRouter API key in the sidebar.")
         elif not uploaded_file:
@@ -199,14 +202,15 @@ elif page == "AI Detection Panel":
             with st.spinner("🧠 The AI is writing your report in simple farmer language..."):
                 prompt = f"""
                 You are a helpful agricultural assistant speaking to a farmer.
-                Write a clear, short, and easy-to-understand farm report using simple words.
-                Disease: {st.session_state.predicted_class} ({st.session_state.confidence*100:.2f}% confidence)
+                Write a clear, short, and easy-to-understand farm report using simple words (no technical terms).
+                Explain what disease was found: {st.session_state.predicted_class} (confidence {st.session_state.confidence*100:.2f}%)
+                and how it affects the plant.
 
-                Include:
-                - **Disease Name**
-                - **What It Means**
-                - **What You Should Do**
-                - **Prevention Tips**
+                Use this format:
+                - **Disease Name:** (name)
+                - **What It Means:** simple explanation
+                - **What You Should Do:** 2-3 easy steps for treatment
+                - **Prevention Tips:** short and clear advice for next time
 
                 Farm conditions:
                 - Temperature: {sensor['temperature']} °C
@@ -228,8 +232,10 @@ elif page == "AI Detection Panel":
                 try:
                     response = requests.post("https://openrouter.ai/api/v1/chat/completions",
                                              headers=headers, json=data, timeout=60)
+                    response.raise_for_status()
                     result = response.json()
                     full_text = result["choices"][0]["message"]["content"]
+
                     st.session_state.report_text = full_text
                     st.success("✅ Report generated successfully!")
                     st.markdown("### 🌿 Your Farm Report\n" + full_text)
@@ -256,7 +262,7 @@ elif page == "AI Detection Panel":
         pdf_bytes = pdf.output(dest='S').encode('latin-1')
 
         st.download_button(
-            "📥 Download Report (PDF)",
+            "📥 Download Simple Report (PDF)",
             data=pdf_bytes,
             file_name="farm_report.pdf",
             mime="application/pdf"
@@ -266,4 +272,4 @@ elif page == "AI Detection Panel":
 # FOOTER
 # ==========================
 st.markdown("---")
-st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+st.markdown("🌾 **Smart Farm Doctor © 2025** — Helping Farmers Grow Smarter 🌿")
