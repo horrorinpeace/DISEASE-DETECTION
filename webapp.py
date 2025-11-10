@@ -6,10 +6,11 @@ from PIL import Image
 import streamlit as st
 import requests
 from fpdf import FPDF
-import openai
 from huggingface_hub import hf_hub_download
 from flask import Flask, request, jsonify
 import tensorflow as tf
+import os
+import json
 
 # ==========================
 # PAGE CONFIG
@@ -49,11 +50,6 @@ def set_background(url):
 set_background("https://images.unsplash.com/photo-1503264116251-35a269479413?auto=format&fit=crop&w=1200&q=80")
 
 # ==========================
-# OPENAI CONFIG
-# ==========================
-openai.api_key = st.secrets.get("OPENAI_API_KEY", "sk-yourkeyhere")
-
-# ==========================
 # LOAD MODEL
 # ==========================
 model_path = hf_hub_download(
@@ -86,8 +82,8 @@ except Exception as e:
 # ==========================
 # THINGSPEAK CONFIG
 # ==========================
-THINGSPEAK_CHANNEL_ID = "3152731"  # ← Replace with your ThingSpeak Channel ID
-READ_API_KEY = "8WGWK6AUAF74H6DJ"  # ← Replace with your ThingSpeak Read API Key
+THINGSPEAK_CHANNEL_ID = "3152731"
+READ_API_KEY = "8WGWK6AUAF74H6DJ"
 
 def fetch_sensor_data():
     url = f"https://api.thingspeak.com/channels/{THINGSPEAK_CHANNEL_ID}/feeds.json?api_key={READ_API_KEY}&results=1"
@@ -130,20 +126,19 @@ if page == "About":
 elif page == "Detection Panel":
     st.title("🔬 Detection Panel")
 
+    # API Key entry box
+    st.sidebar.subheader("🔐 OpenRouter API Key")
+    api_key = st.sidebar.text_input("Enter your OpenRouter API key (starts with sk-or-...)", type="password")
+
     uploaded_file = st.camera_input("Capture an image")
     if uploaded_file is None:
         uploaded_file = st.file_uploader("Or upload an image", type=["png", "jpg", "jpeg"])
 
-    # ==========================
-    # MODEL PREDICTION
-    # ==========================
     if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
         st.image(image, caption="Captured / Uploaded Image")
 
         if model:
-            from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
-
             img_resized = image.resize((224, 224))
             img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
             img_array = np.expand_dims(img_array, axis=0)
@@ -162,9 +157,6 @@ elif page == "Detection Panel":
         else:
             st.error("No model loaded. Please ensure the model file is available.")
 
-    # ==========================
-    # SENSOR DATA (TEXT-ONLY)
-    # ==========================
     st.subheader("📡 Live Sensor Data")
     from streamlit_autorefresh import st_autorefresh
     st_autorefresh(interval=10000, key="sensor_refresh")
@@ -181,75 +173,119 @@ elif page == "Detection Panel":
         st.warning("Waiting for ESP32 data from ThingSpeak...")
 
     # ==========================
-    # LAB REPORT GENERATION
+    # LAB REPORT GENERATION (Live Streaming - FINAL FIX)
     # ==========================
-    st.subheader("🧾 Generate Lab Report")
+    st.subheader("🧾 Generate AI Lab Report")
 
-    if st.button("Generate Lab Report"):
-        if uploaded_file is None:
+    if "report_text" not in st.session_state:
+        st.session_state.report_text = ""
+    if "is_generating" not in st.session_state:
+        st.session_state.is_generating = False
+    if "predicted_class" not in st.session_state:
+        st.session_state.predicted_class = ""
+    if "confidence" not in st.session_state:
+        st.session_state.confidence = 0.0
+
+    if uploaded_file and model:
+        st.session_state.predicted_class = predicted_class
+        st.session_state.confidence = confidence
+
+    if st.button("Generate Lab Report") and not st.session_state.is_generating:
+        if not api_key:
+            st.error("Please enter your OpenRouter API key in the sidebar.")
+        elif uploaded_file is None:
             st.error("Please upload or capture an image first.")
         elif model is None:
             st.error("AI model not loaded.")
         else:
-            st.info("Generating lab report via GPT...")
+            st.session_state.is_generating = True
+            st.session_state.report_text = ""
+            st.info("🧠 Generating AI-based lab report using OpenRouter...")
 
             prompt = f"""
-            Create a concise lab report using:
-            Detection Results: {df_results.to_dict(orient='records')}
-            Sensor Data: {sensor}
-            Format as structured tables under headings:
-            Sample Analysis, Sensor Data, Observations, Conclusion.
+            You are an agricultural scientist.
+            Create a concise lab report with recommendations based on:
+            - Detected disease: {st.session_state.predicted_class} (confidence {st.session_state.confidence*100:.2f}%)
+            - Temperature: {sensor['temperature']} °C
+            - Humidity: {sensor['humidity']} %
+            - Soil moisture: {sensor['soil_moisture']} %
+            Include sections: Diagnosis, Observations, Recommended Actions, Preventive Measures.
             """
 
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
+
+            data = {
+                "model": "meta-llama/llama-3.1-8b-instruct",
+                "messages": [
+                    {"role": "system", "content": "You are an expert agricultural scientist writing detailed reports."},
+                    {"role": "user", "content": prompt}
+                ],
+                "max_tokens": 700,
+                "temperature": 0.7,
+                "stream": True
+            }
+
+            report_placeholder = st.empty()
+            full_text = ""
+
             try:
-                from openai import OpenAI
-                client = OpenAI(
-                    api_key="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",
-                    project="proj_aWIZcOZakna1gwent6CATWJ1"
-                )
+                with requests.post("https://openrouter.ai/api/v1/chat/completions",
+                                   headers=headers, json=data, stream=True, timeout=90) as response:
+                    if response.status_code != 200:
+                        st.error(f"OpenRouter API Error: {response.status_code}")
+                        st.text_area("API Response", response.text, height=200)
+                    else:
+                        for line in response.iter_lines():
+                            if line:
+                                try:
+                                    decoded = line.decode("utf-8")
+                                    if decoded.startswith("data: "):
+                                        payload = json.loads(decoded[6:])
+                                        delta = payload.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                                        full_text += delta
+                                        report_placeholder.markdown(full_text + "▌")
+                                except Exception:
+                                    continue
 
-                response = client.chat.completions.create(
-                    model="gpt-5",  # or "gpt-4-turbo"
-                    messages=[
-                        {"role": "system", "content": "You are a scientific report writer."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    max_tokens=800
-                )
-
-                report_text = response.choices[0].message.content
+                        # Final update once done
+                        report_placeholder.markdown("### 🧾 AI Lab Report\n" + full_text)
+                        st.session_state.report_text = full_text
+                        st.session_state.is_generating = False
+                        st.success("✅ Lab report generated successfully!")
 
             except Exception as e:
-                st.error(f"GPT Error: {e}")
-                report_text = "Could not generate report."
+                st.error(f"❌ Error generating report: {e}")
+                st.session_state.is_generating = False
 
-            st.markdown(report_text)
+    # Display final text only after generation is fully complete (no double render)
+    if st.session_state.report_text and not st.session_state.is_generating:
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 16)
+        pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
+        pdf.set_font("Arial", "", 12)
+        pdf.multi_cell(0, 8, st.session_state.report_text)
 
-            # PDF generation
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", "B", 16)
-            pdf.cell(0, 10, "AI Lab Report", ln=True, align="C")
-            pdf.set_font("Arial", "", 12)
-            pdf.multi_cell(0, 8, report_text)
-
-            # Add image safely to PDF
-            temp_img_path = "temp_image.jpg"
+        temp_img_path = "temp_image.jpg"
+        if uploaded_file:
             with open(temp_img_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
-
             pdf.image(temp_img_path, x=10, y=None, w=100)
-            pdf_bytes = pdf.output(dest='S').encode('latin-1')
 
-            st.download_button(
-                "📥 Download PDF",
-                data=pdf_bytes,
-                file_name="lab_report.pdf",
-                mime="application/pdf"
-            )
+        pdf_bytes = pdf.output(dest='S').encode('latin-1')
+
+        st.download_button(
+            "📥 Download PDF",
+            data=pdf_bytes,
+            file_name="lab_report.pdf",
+            mime="application/pdf"
+        )
 
 # ==========================
 # FOOTER
 # ==========================
 st.markdown("---")
-st.markdown("© 2025 AI Detection Lab — Built with ❤ using Streamlit.")v
+st.markdown("© 2025 AI Detection Lab — Built with ❤ using Streamlit.")
