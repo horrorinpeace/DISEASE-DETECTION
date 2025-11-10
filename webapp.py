@@ -14,13 +14,10 @@ import time
 # ==========================
 # PAGE CONFIG
 # ==========================
-st.set_page_config(
-    page_title="🌾FARMDOC",
-    layout="wide"
-)
+st.set_page_config(page_title="🌾 FARMDOC AI", layout="wide")
 
 # ==========================
-# BACKGROUND
+# BACKGROUND & STYLE
 # ==========================
 def set_background():
     st.markdown(
@@ -46,8 +43,6 @@ def set_background():
             border-radius: 12px !important;
             padding: 10px 25px !important;
         }
-
-        /* ✅ Flip live camera preview horizontally */
         video {
             transform: scaleX(-1) !important;
         }
@@ -56,14 +51,13 @@ def set_background():
         unsafe_allow_html=True
     )
 
-# ✅ Minimal clean gradient background
 set_background()
 
 # ==========================
-# LOAD MODEL
+# MODEL LOAD
 # ==========================
-st.title("🌱 Smart Farm Doctor")
-st.write("A simple tool to **detect plant diseases** and get **easy-to-understand treatment advice** using AI.")
+st.title("🌱 Smart Farm Doctor AI")
+st.write("AI-powered plant species & disease detection with live farm data integration.")
 
 model_path = hf_hub_download(
     repo_id="qwertymaninwork/Plant_Disease_Detection_System",
@@ -87,7 +81,7 @@ try:
         'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT', 'WHEAT YELLOW RUST'
     ]
 except Exception as e:
-    st.warning(f"⚠️ Could not load model: {e}")
+    st.warning(f"⚠️ Could not load disease model: {e}")
     model = None
     CLASS_NAMES = []
 
@@ -126,17 +120,13 @@ page = st.sidebar.radio("Go to", ["About", "AI Detection Panel"])
 if page == "About":
     st.header("🌾 About Smart Farm Doctor")
     st.markdown("""
-    **Smart Farm Doctor** helps farmers detect plant diseases using their phone’s camera or uploaded images.
+    **Smart Farm Doctor** combines multiple AIs:
+    - 🌿 **PlantNet API** → Identifies plant species.
+    - 🧠 **TensorFlow AI** → Detects diseases for known crops.
+    - 🌡 **ThingSpeak Sensor** → Reads your real-time farm data.
+    - ✍️ **Llama 3.1 AI** → Writes an easy farmer report.
 
-    It also gives **simple, clear advice** on:
-    - What the disease is  
-    - How it affects the crop  
-    - What actions to take  
-    - How to prevent it in the future  
-
-    It connects with your farm sensors (ESP32 + ThingSpeak) to include weather and soil data in your report.
-
-    📷 Just take a photo → 🧠 Let AI detect → 📋 Get your easy farm report.
+    📷 Just take a photo → 🧠 AI analyzes → 📋 Get your simple report instantly.
     """)
 
 # ==========================
@@ -145,38 +135,66 @@ if page == "About":
 elif page == "AI Detection Panel":
     st.header("🧠 Step 1: Capture or Upload Plant Image")
 
-    api_key = st.sidebar.text_input("🔐 Enter your OpenRouter API key (starts with sk-or-...)", type="password")
+    plantnet_key = st.sidebar.text_input("🔑 Enter PlantNet API Key", type="password")
+    api_key = st.sidebar.text_input("🔐 Enter OpenRouter API Key (sk-or-...)", type="password")
 
-    # 🎥 Camera live view is now mirrored via CSS
     uploaded_file = st.camera_input("📸 Take a photo of your crop leaf")
     if uploaded_file is None:
         uploaded_file = st.file_uploader("Or upload a leaf image", type=["png", "jpg", "jpeg"])
 
     if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="🪴 This is the captured image being analyzed", use_column_width=True)
+        st.image(image, caption="🪴 Image being analyzed", use_column_width=True)
 
-        if model:
-            img_resized = image.resize((224, 224))
-            img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
-            img_array = np.expand_dims(img_array, axis=0)
+        if plantnet_key:
+            with st.spinner("🌿 Identifying plant species using PlantNet..."):
+                try:
+                    api_url = f"https://my-api.plantnet.org/v2/identify/all?api-key={plantnet_key}"
+                    files = {'images': uploaded_file.getvalue()}
+                    data = {'organs': ['leaf']}
 
-            preds = model.predict(img_array)
-            confidence = np.max(preds)
-            predicted_class = CLASS_NAMES[np.argmax(preds)]
-            st.session_state.predicted_class = predicted_class
-            st.session_state.confidence = confidence
+                    response = requests.post(api_url, files=files, data=data)
+                    response.raise_for_status()
+                    result = response.json()
 
-            st.success(f"🌿 The AI detected: **{predicted_class}** with {confidence*100:.2f}% confidence.")
+                    if "results" in result and len(result["results"]) > 0:
+                        top_result = result["results"][0]
+                        species_name = top_result["species"]["scientificNameWithoutAuthor"]
+                        common_name = ", ".join(top_result["species"].get("commonNames", [])) or "Unknown"
+                        confidence = top_result["score"] * 100
+
+                        st.session_state.species = species_name
+                        st.session_state.confidence_species = confidence
+
+                        st.success(f"🌿 **Plant Identified:** {species_name} ({common_name}) — {confidence:.2f}% confidence")
+                    else:
+                        st.warning("No species identified. Try another photo.")
+                except Exception as e:
+                    st.error(f"❌ PlantNet API error: {e}")
+
+        # ==========================
+        # LOCAL DISEASE DETECTION
+        # ==========================
+        if model and "species" in st.session_state:
+            with st.spinner("🔬 Checking for possible diseases..."):
+                img_resized = image.resize((224, 224))
+                img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
+                img_array = np.expand_dims(img_array, axis=0)
+
+                preds = model.predict(img_array)
+                confidence_disease = np.max(preds)
+                predicted_class = CLASS_NAMES[np.argmax(preds)]
+
+                st.session_state.disease = predicted_class
+                st.session_state.confidence_disease = confidence_disease
+
+                st.success(f"🧬 Disease Detection: **{predicted_class}** ({confidence_disease*100:.2f}% confidence)")
 
     # ==========================
-    # SENSOR DATA DISPLAY
+    # LIVE SENSOR DATA
     # ==========================
-    st.header("🌡 Step 2: Check Live Farm Data")
-    count = st_autorefresh(interval=5000, limit=None, key="sensor_refresh")
-
-    sensor = fetch_sensor_data()
-
+    st.header("🌡 Step 2: Live Farm Conditions")
+    st_autorefresh(interval=5000, limit=None, key="refresh")
     sensor = fetch_sensor_data()
     if sensor["temperature"]:
         col1, col2, col3 = st.columns(3)
@@ -185,97 +203,82 @@ elif page == "AI Detection Panel":
         col3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
         st.caption(f"Last updated: {sensor['timestamp']}")
     else:
-        st.warning("Waiting for live data from your farm sensors...")
+        st.warning("Waiting for sensor data...")
 
     # ==========================
-    # AI REPORT GENERATION
+    # FARM REPORT GENERATION
     # ==========================
-    st.header("📋 Step 3: Get Simple AI Farm Report")
+    st.header("📋 Step 3: Generate Easy Farm Report")
 
-    if "report_text" not in st.session_state:
-        st.session_state.report_text = ""
-
-    if st.button("🧾 Generate Easy Farm Report"):
+    if st.button("🧾 Generate Report"):
         if not api_key:
-            st.error("Please enter your OpenRouter API key in the sidebar.")
-        elif not uploaded_file:
-            st.error("Please upload or take a photo first.")
-        elif model is None:
-            st.error("AI model not loaded.")
+            st.error("Please enter your OpenRouter API key.")
+        elif "species" not in st.session_state:
+            st.error("Please identify a plant first.")
+        elif "disease" not in st.session_state:
+            st.error("Disease not detected yet.")
         else:
-            with st.spinner("🧠 The AI is writing your report in simple farmer language..."):
+            with st.spinner("🧠 Generating your AI farm report..."):
                 prompt = f"""
-                You are a helpful agricultural assistant speaking to a farmer.
-                Write a clear, short, and easy-to-understand farm report using simple words (no technical terms).
-                Explain what disease was found: {st.session_state.predicted_class} (confidence {st.session_state.confidence*100:.2f}%)
-                and how it affects the plant.
+                You are a friendly agricultural assistant.
+                Write a short, simple, easy-to-understand report for a farmer.
 
-                Use this format:
-                - **Disease Name:** (name)
-                - **What It Means:** simple explanation
-                - **What You Should Do:** 2-3 easy steps for treatment
-                - **Prevention Tips:** short and clear advice for next time
+                - **Plant Identified:** {st.session_state.species} ({st.session_state.confidence_species:.2f}%)
+                - **Detected Condition:** {st.session_state.disease} ({st.session_state.confidence_disease*100:.2f}%)
+                - **Temperature:** {sensor['temperature']} °C
+                - **Humidity:** {sensor['humidity']} %
+                - **Soil Moisture:** {sensor['soil_moisture']} %
 
-                Farm conditions:
-                - Temperature: {sensor['temperature']} °C
-                - Humidity: {sensor['humidity']} %
-                - Soil Moisture: {sensor['soil_moisture']} %
+                Format:
+                - **Plant:** name
+                - **Condition:** explain what was found
+                - **What You Should Do:** 3 short steps
+                - **Prevention Tips:** clear simple advice
                 """
 
                 headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
                 data = {
                     "model": "meta-llama/llama-3.1-8b-instruct",
                     "messages": [
-                        {"role": "system", "content": "You are a friendly farm advisor speaking in simple words."},
+                        {"role": "system", "content": "You are a kind farm advisor speaking in simple Hindi-English mix."},
                         {"role": "user", "content": prompt}
                     ],
-                    "max_tokens": 600,
+                    "max_tokens": 500,
                     "temperature": 0.7
                 }
 
                 try:
-                    response = requests.post("https://openrouter.ai/api/v1/chat/completions",
-                                             headers=headers, json=data, timeout=60)
-                    response.raise_for_status()
+                    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data, timeout=60)
                     result = response.json()
-                    full_text = result["choices"][0]["message"]["content"]
+                    report = result["choices"][0]["message"]["content"]
 
-                    st.session_state.report_text = full_text
+                    st.session_state.report = report
                     st.success("✅ Report generated successfully!")
-                    st.markdown("### 🌿 Your Farm Report\n" + full_text)
+                    st.markdown("### 🌿 Your Easy Farm Report\n" + report)
                 except Exception as e:
-                    st.error(f"❌ Error generating report: {e}")
+                    st.error(f"❌ Report generation error: {e}")
 
     # ==========================
-    # DOWNLOAD REPORT
+    # PDF DOWNLOAD
     # ==========================
-    if st.session_state.report_text:
+    if "report" in st.session_state:
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", "B", 16)
         pdf.cell(0, 10, "Easy Farm Report", ln=True, align="C")
         pdf.set_font("Arial", "", 12)
-        pdf.multi_cell(0, 8, st.session_state.report_text)
+        pdf.multi_cell(0, 8, st.session_state.report)
 
-        temp_img_path = "temp_image.jpg"
-        if uploaded_file:
-            with open(temp_img_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            pdf.image(temp_img_path, x=10, y=None, w=100)
+        temp_img_path = "temp_leaf.jpg"
+        with open(temp_img_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        pdf.image(temp_img_path, x=10, y=None, w=100)
 
-        pdf_bytes = pdf.output(dest='S').encode('latin-1')
-
-        st.download_button(
-            "📥 Download Simple Report (PDF)",
-            data=pdf_bytes,
-            file_name="farm_report.pdf",
-            mime="application/pdf"
-        )
+        pdf_bytes = pdf.output(dest="S").encode("latin-1")
+        st.download_button("📥 Download Report (PDF)", data=pdf_bytes, file_name="farm_report.pdf", mime="application/pdf")
 
 # ==========================
 # FOOTER
 # ==========================
 st.markdown("---")
-st.markdown("🌾 **Smart Farm Doctor © 2025** — Helping Farmers Grow Smarter 🌿")
-
-
+st.markdown("🌾 **Smart Farm Doctor © 2025** — Empowering Farmers with AI 🌿")
