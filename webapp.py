@@ -168,20 +168,30 @@ elif page == "AI Detection Panel":
 
             st.success(f"🌿 The AI detected: **{predicted_class}** with {confidence*100:.2f}% confidence.")
 
-    # ==========================
-    # SENSOR DATA DISPLAY
-    # ==========================
-    st.header("🌡 Step 2: Check Live Farm Data")
+# ==========================
+# SENSOR DATA DISPLAY
+# ==========================
+st.header("🌡 Step 2: Check Live Farm Data")
 
-    sensor = fetch_sensor_data()
-    if sensor["temperature"]:
-        col1, col2, col3 = st.columns(3)
-        col1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
-        col2.metric("💧 Humidity", f"{sensor['humidity']} %")
-        col3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
-        st.caption(f"Last updated: {sensor['timestamp']}")
-    else:
-        st.warning("Waiting for live data from your farm sensors...")
+# 🔁 Automatically refresh every 20 seconds
+st_autorefresh = st.experimental_rerun  # fallback for clarity if old Streamlit version
+try:
+    count = st.experimental_rerun()
+except:
+    from streamlit_autorefresh import st_autorefresh
+    count = st_autorefresh(interval=20000, limit=None, key="sensor_refresh")
+
+sensor = fetch_sensor_data()
+
+if sensor["temperature"]:
+    col1, col2, col3 = st.columns(3)
+    col1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
+    col2.metric("💧 Humidity", f"{sensor['humidity']} %")
+    col3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
+    st.caption(f"Last updated: {sensor['timestamp']}")
+else:
+    st.warning("Waiting for live data from your farm sensors...")
+
 
     # ==========================
     # AI REPORT GENERATION
@@ -273,6 +283,7 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
+
 
 
 
