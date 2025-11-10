@@ -167,6 +167,7 @@ elif page == "AI Detection Panel":
                         confidence = round(top_result["score"] * 100, 2)
 
                         st.session_state["species"] = species_name
+                        st.session_state["common_names"] = common_name
                         st.session_state["species_confidence"] = confidence
 
                         st.success(f"🌿 **Plant Identified:** {species_name} ({common_name}) — {confidence}% confidence")
@@ -175,7 +176,7 @@ elif page == "AI Detection Panel":
                 except Exception as e:
                     st.error(f"🚫 PlantNet API error: {e}")
 
-        # ===== STEP 2: DISEASE DETECTION (FILTERED BY PLANT TYPE) =====
+        # ===== STEP 2: DISEASE DETECTION (SMART MATCHING) =====
         if model and "species" in st.session_state:
             DISEASE_GROUPS = {
                 "millet": ["HEALTHY MILLET", "MILLETS BLAST", "MILLETS RUST"],
@@ -187,10 +188,14 @@ elif page == "AI Detection Panel":
                 "wheat": ["HEALTHY WHEAT", "WHEAT BROWN RUST", "WHEAT LOOSE SMUT", "WHEAT YELLOW RUST"]
             }
 
+            # Combine both scientific and common names for flexible matching
             species_name = st.session_state["species"].lower()
+            common_names = st.session_state.get("common_names", "").lower()
+            combined_text = f"{species_name} {common_names}"
+
             plant_type = None
             for key in DISEASE_GROUPS.keys():
-                if key in species_name:
+                if key in combined_text:
                     plant_type = key
                     break
 
