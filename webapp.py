@@ -136,7 +136,7 @@ if page == "About":
 
     It connects with your farm sensors (ESP32 + ThingSpeak) to include weather and soil data in your report.
 
-     Take a photo → Let AI detect → Get your farm report.
+    Take a photo → Let AI detect → Get your farm report.
     """)
 
 # ==========================
@@ -168,25 +168,25 @@ elif page == "AI Detection Panel":
             st.session_state.confidence = confidence
 
             st.success(f"🌿 The AI detected: **{predicted_class}** with {confidence*100:.2f}% confidence.")
-# ==========================
-# SENSOR DATA DISPLAY (Auto Refresh)
-# ==========================
-st.header("🌡 Step 2: Check Live Farm Data")
 
-# 🔁 Auto-refresh every 20 seconds (ThingSpeak limit = 15 sec min)
-count = st_autorefresh(interval=5000, limit=None, key="sensor_refresh")
+    # ==========================
+    # SENSOR DATA DISPLAY (Auto Refresh)
+    # ==========================
+    st.header("🌡 Step 2: Check Live Farm Data")
 
-sensor = fetch_sensor_data()
+    # 🔁 Auto-refresh every 20 seconds (ThingSpeak limit = 15 sec min)
+    count = st_autorefresh(interval=20000, limit=None, key="sensor_refresh")
 
-if sensor["temperature"]:
-    col1, col2, col3 = st.columns(3)
-    col1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
-    col2.metric("💧 Humidity", f"{sensor['humidity']} %")
-    col3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
-    st.caption(f"Last updated: {sensor['timestamp']}")
-else:
-    st.warning("Waiting for live data from your farm sensors...")
+    sensor = fetch_sensor_data()
 
+    if sensor["temperature"]:
+        col1, col2, col3 = st.columns(3)
+        col1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
+        col2.metric("💧 Humidity", f"{sensor['humidity']} %")
+        col3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
+        st.caption(f"Last updated: {sensor['timestamp']}")
+    else:
+        st.warning("Waiting for live data from your farm sensors...")
 
     # ==========================
     # AI REPORT GENERATION
@@ -278,11 +278,3 @@ else:
 # ==========================
 st.markdown("---")
 st.markdown("🌾 **FARMDOC © 2025** — Helping Farmers Grow Smarter 🌿")
-
-
-
-
-
-
-
-
