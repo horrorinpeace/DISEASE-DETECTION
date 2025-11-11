@@ -276,5 +276,6 @@ elif page == "AI Detection Panel":
 # FOOTER
 # ==========================
 st.markdown("---")
-st.markdown("🌾 *Smart Farm Doctor © 2025* — Helping Farmers Grow Smarter 🌿")
+st.markdown("*FarmDoc © 2025* — Helping Farmers Grow Smarter 🌿")
+
 
