@@ -62,7 +62,7 @@ set_background()
 # ==========================
 # LOAD MODEL
 # ==========================
-st.title("🌱 Smart Farm Doctor")
+st.title("🌱 FarmDoc")
 st.write("A simple tool to *detect plant diseases* and get *easy-to-understand treatment advice* using AI.")
 
 model_path = hf_hub_download(
@@ -124,9 +124,9 @@ page = st.sidebar.radio("Go to", ["About", "AI Detection Panel"])
 # ABOUT PAGE
 # ==========================
 if page == "About":
-    st.header("🌾 About Smart Farm Doctor")
+    st.header("About FarmDoc AI")
     st.markdown("""
-    *Smart Farm Doctor* helps farmers detect plant diseases using their phone’s camera or uploaded images.
+    The *FarmDoc AI* helps farmers detect plant diseases using their phone’s camera or uploaded images.
 
     It also gives *simple, clear advice* on:
     - What the disease is  
@@ -136,14 +136,14 @@ if page == "About":
 
     It connects with your farm sensors (ESP32 + ThingSpeak) to include weather and soil data in your report.
 
-    📷 Just take a photo → 🧠 Let AI detect → 📋 Get your easy farm report.
+    Take a photo → Let AI detect → Get your farm report.
     """)
 
 # ==========================
 # AI DETECTION PANEL
 # ==========================
 elif page == "AI Detection Panel":
-    st.header("🧠 Step 1: Capture or Upload Plant Image")
+    st.header("Step 1: Capture or Upload Plant Image")
 
     api_key = st.sidebar.text_input("🔐 Enter your OpenRouter API key (starts with sk-or-...)", type="password")
 
@@ -190,12 +190,12 @@ elif page == "AI Detection Panel":
     # ==========================
     # AI REPORT GENERATION
     # ==========================
-    st.header("📋 Step 3: Get Simple AI Farm Report")
+    st.header("Step 3: Get AI Farm Report")
 
     if "report_text" not in st.session_state:
         st.session_state.report_text = ""
 
-    if st.button("🧾 Generate Easy Farm Report"):
+    if st.button("🧾 Generate Farm Report"):
         if not api_key:
             st.error("Please enter your OpenRouter API key in the sidebar.")
         elif not uploaded_file:
@@ -203,7 +203,7 @@ elif page == "AI Detection Panel":
         elif model is None:
             st.error("AI model not loaded.")
         else:
-            with st.spinner("🧠 The AI is writing your report in simple farmer language..."):
+            with st.spinner("The AI is writing your report in simple farmer language..."):
                 prompt = f"""
                 You are a helpful agricultural assistant speaking to a farmer.
                 Write a clear, short, and easy-to-understand farm report using simple words (no technical terms).
@@ -277,3 +277,4 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("🌾 *Smart Farm Doctor © 2025* — Helping Farmers Grow Smarter 🌿")
+
