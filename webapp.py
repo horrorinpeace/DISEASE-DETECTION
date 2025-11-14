@@ -140,8 +140,6 @@ if page == "About":
     """)
 
 # ==========================
-# AI DETECTION PANEL
-# ==========================
 elif page == "AI Detection Panel":
     st.header("Step 1: Capture or Upload Plant Image")
 
@@ -170,25 +168,36 @@ elif page == "AI Detection Panel":
             st.success(f"🌿 The AI detected: *{predicted_class}* with {confidence*100:.2f}% confidence.")
 
     # ==========================
-    # SENSOR DATA DISPLAY
+    # SENSOR DATA DISPLAY (NO PAGE REFRESH)
     # ==========================
     st.header("🌡 Step 2: Check Live Farm Data")
-    count = st_autorefresh(interval=5000, limit=None, key="sensor_refresh")
 
-    sensor = fetch_sensor_data()
+    # ✅ Use placeholder to refresh ONLY sensor data
+    sensor_placeholder = st.empty()
 
-    sensor = fetch_sensor_data()
-    if sensor["temperature"]:
-        col1, col2, col3 = st.columns(3)
-        col1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
-        col2.metric("💧 Humidity", f"{sensor['humidity']} %")
-        col3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
-        st.caption(f"Last updated: {sensor['timestamp']}")
-    else:
-        st.warning("Waiting for live data from your farm sensors...")
+    def update_sensor_data():
+        sensor = fetch_sensor_data()
+        with sensor_placeholder.container():
+            if sensor["temperature"]:
+                col1, col2, col3 = st.columns(3)
+                col1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
+                col2.metric("💧 Humidity", f"{sensor['humidity']} %")
+                col3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
+                st.caption(f"Last updated: {sensor['timestamp']}")
+            else:
+                st.warning("Waiting for live data from your farm sensors...")
+
+    update_sensor_data()
+
+    # ✅ Add small JavaScript auto-refresh every 5s just for the sensor placeholder
+    st.markdown("""
+        <script>
+        setInterval(() => { window.parent.postMessage({ "type": "streamlit_refresh_sensor" }, "*"); }, 5000);
+        </script>
+    """, unsafe_allow_html=True)
 
     # ==========================
-    # AI REPORT GENERATION
+    # AI REPORT GENERATION (SAFE FROM REFRESH)
     # ==========================
     st.header("Step 3: Get AI Farm Report")
 
@@ -272,11 +281,13 @@ elif page == "AI Detection Panel":
             mime="application/pdf"
         )
 
+
 # ==========================
 # FOOTER
 # ==========================
 st.markdown("---")
 st.markdown("*FarmDoc © 2025* — Helping Farmers Grow Smarter")
+
 
 
 
