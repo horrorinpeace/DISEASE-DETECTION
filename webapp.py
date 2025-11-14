@@ -63,7 +63,7 @@ set_background()
 # LOAD MODEL
 # ==========================
 st.title("🌱 FarmDoc")
-st.write("A simple tool to *detect plant diseases* and get *easy-to-understand treatment advice* using AI.")
+st.write("A simple tool to detect plant diseases and get easy-to-understand treatment advice using AI.")
 
 model_path = hf_hub_download(
     repo_id="qwertymaninwork/Plant_Disease_Detection_System",
@@ -126,9 +126,9 @@ page = st.sidebar.radio("Go to", ["About", "AI Detection Panel"])
 if page == "About":
     st.header("About FarmDoc AI")
     st.markdown("""
-    The *FarmDoc AI* helps farmers detect plant diseases using their phone’s camera or uploaded images.
+    The FarmDoc AI helps farmers detect plant diseases using their phone’s camera or uploaded images.
 
-    It also gives *simple, clear advice* on:
+    It also gives simple, clear advice on:
     - What the disease is  
     - How it affects the crop  
     - What actions to take  
@@ -139,6 +139,8 @@ if page == "About":
     Take a photo → Let AI detect → Get your farm report.
     """)
 
+# ==========================
+# AI DETECTION PANEL
 # ==========================
 elif page == "AI Detection Panel":
     st.header("Step 1: Capture or Upload Plant Image")
@@ -165,39 +167,28 @@ elif page == "AI Detection Panel":
             st.session_state.predicted_class = predicted_class
             st.session_state.confidence = confidence
 
-            st.success(f"🌿 The AI detected: *{predicted_class}* with {confidence*100:.2f}% confidence.")
+            st.success(f"🌿 The AI detected: {predicted_class} with {confidence*100:.2f}% confidence.")
 
     # ==========================
-    # SENSOR DATA DISPLAY (NO PAGE REFRESH)
+    # SENSOR DATA DISPLAY
     # ==========================
     st.header("🌡 Step 2: Check Live Farm Data")
+    count = st_autorefresh(interval=5000, limit=None, key="sensor_refresh")
 
-    # ✅ Use placeholder to refresh ONLY sensor data
-    sensor_placeholder = st.empty()
+    sensor = fetch_sensor_data()
 
-    def update_sensor_data():
-        sensor = fetch_sensor_data()
-        with sensor_placeholder.container():
-            if sensor["temperature"]:
-                col1, col2, col3 = st.columns(3)
-                col1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
-                col2.metric("💧 Humidity", f"{sensor['humidity']} %")
-                col3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
-                st.caption(f"Last updated: {sensor['timestamp']}")
-            else:
-                st.warning("Waiting for live data from your farm sensors...")
-
-    update_sensor_data()
-
-    # ✅ Add small JavaScript auto-refresh every 5s just for the sensor placeholder
-    st.markdown("""
-        <script>
-        setInterval(() => { window.parent.postMessage({ "type": "streamlit_refresh_sensor" }, "*"); }, 5000);
-        </script>
-    """, unsafe_allow_html=True)
+    sensor = fetch_sensor_data()
+    if sensor["temperature"]:
+        col1, col2, col3 = st.columns(3)
+        col1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
+        col2.metric("💧 Humidity", f"{sensor['humidity']} %")
+        col3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
+        st.caption(f"Last updated: {sensor['timestamp']}")
+    else:
+        st.warning("Waiting for live data from your farm sensors...")
 
     # ==========================
-    # AI REPORT GENERATION (SAFE FROM REFRESH)
+    # AI REPORT GENERATION
     # ==========================
     st.header("Step 3: Get AI Farm Report")
 
@@ -220,10 +211,10 @@ elif page == "AI Detection Panel":
                 and how it affects the plant.
 
                 Use this format:
-                - *Disease Name:* (name)
-                - *What It Means:* simple explanation
-                - *What You Should Do:* 2-3 easy steps for treatment
-                - *Prevention Tips:* short and clear advice for next time
+                - Disease Name: (name)
+                - What It Means: simple explanation
+                - What You Should Do: 2-3 easy steps for treatment
+                - Prevention Tips: short and clear advice for next time
 
                 Farm conditions:
                 - Temperature: {sensor['temperature']} °C
@@ -281,13 +272,8 @@ elif page == "AI Detection Panel":
             mime="application/pdf"
         )
 
-
 # ==========================
 # FOOTER
 # ==========================
 st.markdown("---")
-st.markdown("*FarmDoc © 2025* — Helping Farmers Grow Smarter")
-
-
-
-
+st.markdown("FarmDoc © 2025 — Helping Farmers Grow Smarter")
