@@ -286,14 +286,14 @@ Farm conditions:
                 }
 
                 payload = {
-                    "model": "meta-llama/llama-3.1-8b-instruct",
-                    "messages": [
-                        {"role": "system", "content": "You are a friendly farm advisor speaking in simple words."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    "max_tokens": 600,
-                    "temperature": 0.7
-                }
+                           "model": "qwen2.5:7b-instruct",
+                          "messages": [
+                           {"role": "system", "content": "You give farm advice in a clear, simple way that farmers can understand."},
+                            {"role": "user", "content": prompt}
+                               ],
+                                     "max_tokens": 700,
+                                "temperature": 0.6
+                                   }
 
                 max_attempts = 3
                 delay = 1.0
@@ -404,3 +404,4 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
