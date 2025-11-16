@@ -297,7 +297,7 @@ if st.session_state.report_text:
     # -------- TXT Export (UTF-8, always works) --------
     txt_bytes = st.session_state.report_text.encode("utf-8")
     st.download_button(
-        "📥 Download Farm Report (TXT, UTF-8)",
+        "📥 Download Farm Report (TXT)",
         data=txt_bytes,
         file_name="farm_report.txt",
         mime="text/plain; charset=utf-8"
@@ -349,6 +349,7 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
