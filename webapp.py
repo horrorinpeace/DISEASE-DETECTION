@@ -248,7 +248,7 @@ elif page == "AI Detection Panel":
             with st.spinner("Writing report..."):
                 prompt = f"""
                 You are a helpful agricultural assistant.
-                Write the report in {selected_language}.
+                Write the report in, write it in a simple way for farmers to understand in {selected_language}.
                 Use this format:
                 - Disease Name:
                 - What It Means:
@@ -316,6 +316,7 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
