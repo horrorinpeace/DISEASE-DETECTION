@@ -237,15 +237,15 @@ elif page == "AI Detection Panel":
     st.header("Step 3 — Get Farm Report")
     st.markdown("<div class='card'>The AI will write the report in the selected language.</div>", unsafe_allow_html=True)
 
-     if st.button("🧾 Generate Farm Report"):
-    st.session_state.report_text = ""
-    if not api_key:
+        if st.button("🧾 Generate Farm Report"):
+        st.session_state.report_text = ""
+        if not api_key:
         st.error("Please enter your Groq API key.")
-    elif not uploaded_file:
+        elif not uploaded_file:
         st.error("Please upload or capture an image.")
-    elif model is None:
+        elif model is None:
         st.error("Model not loaded.")
-    else:
+        else:
         with st.spinner("Writing report..."):
 
             prompt = f"""
@@ -355,5 +355,6 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
