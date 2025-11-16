@@ -238,6 +238,7 @@ elif page == "AI Detection Panel":
     st.markdown("<div class='card'>The AI will write the report in the selected language.</div>", unsafe_allow_html=True)
 
     if st.button("🧾 Generate Farm Report"):
+        st.session_state.report_text = ""
         if not api_key:
             st.error("Please enter your API key.")
         elif not uploaded_file:
@@ -316,6 +317,7 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
