@@ -291,19 +291,25 @@ elif page == "AI Detection Panel":
 
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_font("Arial", "B", 16)
 
-        pdf.cell(0, 10, "Farm Report", ln=True, align="C")   # <-- FIXED
+        # --- Add Unicode font (needed for Indian languages) ---
+        # Download this file once and place it in your project folder:
+        # NotoSans-Regular.ttf (Google Fonts → Noto Sans)
+        pdf.add_font("NotoSans", "", "NotoSans-Regular.ttf", uni=True)
+        pdf.set_font("NotoSans", "", 16)
 
-        pdf.set_font("Arial", "", 12)
+        pdf.cell(0, 10, "Farm Report", ln=True, align="C")
+
+        pdf.set_font("NotoSans", "", 12)
         pdf.multi_cell(0, 8, st.session_state.report_text)
+
 
         if uploaded_file:
             with open("temp.jpg", "wb") as f:
                 f.write(uploaded_file.getbuffer())
             pdf.image("temp.jpg", x=10, w=100)
 
-        pdf_bytes = pdf.output(dest='S').encode("latin-1")
+        pdf_bytes = pdf.output(dest='S').encode("utf-8")
 
         st.download_button(
             "📥 Download Farm Report (PDF)",  # <-- FIXED
@@ -317,6 +323,7 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
