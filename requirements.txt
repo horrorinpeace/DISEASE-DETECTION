@@ -15,3 +15,4 @@ sentencepiece
 rich<14
 flask
 streamlit-autorefresh
+python-docx
