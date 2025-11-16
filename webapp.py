@@ -284,108 +284,62 @@ elif page == "AI Detection Panel":
 
     # ==========================
 # ==========================
+# ==========================
 # SHOW REPORT + PDF FIXES
 # ==========================
+
+# --- Auto-download fonts (works for all Indian languages + Urdu) ---
+import urllib.request
+
+font_urls = {
+    "NotoSansDevanagari-Regular.ttf": "https://github.com/notofonts/devanagari/raw/main/fonts/NotoSansDevanagari-Regular.ttf",
+    "NotoSansBengali-Regular.ttf": "https://github.com/notofonts/bengali/raw/main/fonts/NotoSansBengali-Regular.ttf",
+    "NotoSansTamil-Regular.ttf": "https://github.com/notofonts/tamil/raw/main/fonts/NotoSansTamil-Regular.ttf",
+    "NotoSansTelugu-Regular.ttf": "https://github.com/notofonts/telugu/raw/main/fonts/NotoSansTelugu-Regular.ttf",
+    "NotoSansKannada-Regular.ttf": "https://github.com/notofonts/kannada/raw/main/fonts/NotoSansKannada-Regular.ttf",
+    "NotoSansMalayalam-Regular.ttf": "https://github.com/notofonts/malayalam/raw/main/fonts/NotoSansMalayalam-Regular.ttf",
+    "NotoSansGujarati-Regular.ttf": "https://github.com/notofonts/gujarati/raw/main/fonts/NotoSansGujarati-Regular.ttf",
+    "NotoSansGurmukhi-Regular.ttf": "https://github.com/notofonts/gurmukhi/raw/main/fonts/NotoSansGurmukhi-Regular.ttf",
+    "NotoSansOriya-Regular.ttf": "https://github.com/notofonts/oriya/raw/main/fonts/NotoSansOriya-Regular.ttf",
+    "NotoNaskhArabic-Regular.ttf": "https://github.com/notofonts/naskh-arabic/raw/main/fonts/NotoNaskhArabic-Regular.ttf"
+}
+
+# download fonts if missing
+for font_file, url in font_urls.items():
+    if not os.path.exists(font_file):
+        urllib.request.urlretrieve(url, font_file)
+
+# language → font mapping
+language_font_map = {
+    "English": "NotoSansDevanagari-Regular",
+    "Hindi": "NotoSansDevanagari-Regular",
+    "Marathi": "NotoSansDevanagari-Regular",
+    "Bengali": "NotoSansBengali-Regular",
+    "Tamil": "NotoSansTamil-Regular",
+    "Telugu": "NotoSansTelugu-Regular",
+    "Kannada": "NotoSansKannada-Regular",
+    "Malayalam": "NotoSansMalayalam-Regular",
+    "Gujarati": "NotoSansGujarati-Regular",
+    "Punjabi": "NotoSansGurmukhi-Regular",
+    "Odia": "NotoSansOriya-Regular",
+    "Urdu": "NotoNaskhArabic-Regular"
+}
+
 if st.session_state.report_text:
     st.markdown("### 🌿 Your Farm Report")
-    st.markdown(f"<div class='card'><pre style='white-space:pre-wrap'>{st.session_state.report_text}</pre></div>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='card'><pre style='white-space:pre-wrap'>{st.session_state.report_text}</pre></div>",
+        unsafe_allow_html=True
+    )
 
+    # PDF creation with full Unicode support
     pdf = FPDF()
     pdf.add_page()
 
-    # ---------- AUTO-DOWNLOAD UNICODE FONT ----------
-    import urllib.request
-
-    # Devanagari (covers Hindi, Marathi, Nepali)
-    if not os.path.exists("Lohit-Devanagari.ttf"):
-        urllib.request.urlretrieve(
-            "https://github.com/pravins/lohit/raw/master/Lohit-Devanagari.ttf",
-            "Lohit-Devanagari.ttf"
-        )
-
-    # Bengali
-    if not os.path.exists("Lohit-Bengali.ttf"):
-        urllib.request.urlretrieve(
-            "https://github.com/pravins/lohit/raw/master/Lohit-Bengali.ttf",
-            "Lohit-Bengali.ttf"
-        )
-
-    # Tamil
-    if not os.path.exists("Lohit-Tamil.ttf"):
-        urllib.request.urlretrieve(
-            "https://github.com/pravins/lohit/raw/master/Lohit-Tamil.ttf",
-            "Lohit-Tamil.ttf"
-        )
-
-    # Telugu
-    if not os.path.exists("Lohit-Telugu.ttf"):
-        urllib.request.urlretrieve(
-            "https://github.com/pravins/lohit/raw/master/Lohit-Telugu.ttf",
-            "Lohit-Telugu.ttf"
-        )
-
-    # Kannada
-    if not os.path.exists("Lohit-Kannada.ttf"):
-        urllib.request.urlretrieve(
-            "https://github.com/pravins/lohit/raw/master/Lohit-Kannada.ttf",
-            "Lohit-Kannada.ttf"
-        )
-
-    # Malayalam
-    if not os.path.exists("Lohit-Malayalam.ttf"):
-        urllib.request.urlretrieve(
-            "https://github.com/pravins/lohit/raw/master/Lohit-Malayalam.ttf",
-            "Lohit-Malayalam.ttf"
-        )
-
-    # Gujarati
-    if not os.path.exists("Lohit-Gujarati.ttf"):
-        urllib.request.urlretrieve(
-            "https://github.com/pravins/lohit/raw/master/Lohit-Gujarati.ttf",
-            "Lohit-Gujarati.ttf"
-        )
-
-    # Punjabi (Gurmukhi)
-    if not os.path.exists("Lohit-Punjabi.ttf"):
-        urllib.request.urlretrieve(
-            "https://github.com/pravins/lohit/raw/master/Lohit-Punjabi.ttf",
-            "Lohit-Punjabi.ttf"
-        )
-
-    # Odia
-    if not os.path.exists("Lohit-Odia.ttf"):
-        urllib.request.urlretrieve(
-            "https://github.com/pravins/lohit/raw/master/Lohit-Odia.ttf",
-            "Lohit-Odia.ttf"
-        )
-
-    # Urdu (Arabic script)
-    if not os.path.exists("NotoNaskhArabic-Regular.ttf"):
-        urllib.request.urlretrieve(
-            "https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoNaskhArabic/NotoNaskhArabic-Regular.ttf",
-            "NotoNaskhArabic-Regular.ttf"
-        )
-
-    # -------- Font selection based on language --------
-    language_font_map = {
-        "Hindi": "Lohit-Devanagari",
-        "Marathi": "Lohit-Devanagari",
-        "English": "Lohit-Devanagari",  # works fine
-        "Bengali": "Lohit-Bengali",
-        "Tamil": "Lohit-Tamil",
-        "Telugu": "Lohit-Telugu",
-        "Kannada": "Lohit-Kannada",
-        "Malayalam": "Lohit-Malayalam",
-        "Gujarati": "Lohit-Gujarati",
-        "Punjabi": "Lohit-Punjabi",
-        "Odia": "Lohit-Odia",
-        "Urdu": "NotoNaskhArabic-Regular"
-    }
-
-    chosen_font = language_font_map.get(selected_language, "Lohit-Devanagari")
-
+    chosen_font = language_font_map.get(selected_language, "NotoSansDevanagari-Regular")
     pdf.add_font("LangFont", "", chosen_font + ".ttf", uni=True)
     pdf.set_font("LangFont", "", 16)
+
     pdf.cell(0, 10, "Farm Report", ln=True, align="C")
 
     pdf.set_font("LangFont", "", 12)
@@ -396,8 +350,7 @@ if st.session_state.report_text:
             f.write(uploaded_file.getbuffer())
         pdf.image("temp.jpg", x=10, w=100)
 
-    # Use UTF-8 output
-    pdf_bytes = pdf.output(dest='S').encode("utf-8")
+    pdf_bytes = pdf.output(dest="S").encode("utf-8")
 
     st.download_button(
         "📥 Download Farm Report (PDF)",
@@ -407,11 +360,13 @@ if st.session_state.report_text:
     )
 
 
+
 # ==========================
 # FOOTER
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
