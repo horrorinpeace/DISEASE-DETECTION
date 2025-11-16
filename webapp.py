@@ -279,11 +279,11 @@ Farm conditions:
 
                 # OpenRouter request with retries and robust error handling
                 headers = {
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "X-Title": "FarmDoc AI"
-                }
+                           "Authorization": f"Bearer {api_key}",
+                           "Content-Type": "application/json",
+                           "X-Title": "FarmDoc AI"   # REQUIRED for apps
+                            }
+
 
                 payload = {
                            "model": "qwen2.5:7b-instruct",
@@ -404,4 +404,5 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
