@@ -116,7 +116,7 @@ if "report_text" not in st.session_state:
 # SENSOR DATA
 # ==========================
 def fetch_sensor_data():
-    url = f"https://api.thingspeak.com/channels/{3152731}/feeds.json?api_key={8WGWK6AUAF74H6DJ}&results=1"
+    url = f"https://api.thingspeak.com/channels/{3152731}/feeds.json?api_key={"8WGWK6AUAF74H6DJ"}&results=1"
     try:
         response = requests.get(url, timeout=5)
         data = response.json()
@@ -316,4 +316,5 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
