@@ -156,7 +156,7 @@ elif page == "AI Detection Panel":
 
     if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="🪴 This is the captured image being analyzed", use_column_width=True)
+        st.image(image, caption="🪴 This is the captured image being analyzed", width=300)
 
         if model:
             img_resized = image.resize((224, 224))
@@ -270,3 +270,4 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("FarmDoc © 2025 — Helping Farmers Grow Smarter")
+
