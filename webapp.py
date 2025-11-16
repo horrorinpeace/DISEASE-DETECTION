@@ -285,58 +285,8 @@ elif page == "AI Detection Panel":
     # ==========================
 # ==========================
 # ==========================
+# SHOW REPORT + DOCX/TXT fallback (multilingual-safe)
 # ==========================
-# SHOW REPORT + PDF FIXES
-# ==========================
-
-import urllib.request
-
-# --- Verified working font URLs (2025) ---
-font_urls = {
-    "NotoSansDevanagari-Regular.ttf":
-        "https://github.com/notofonts/devanagari/raw/main/fonts/ttf/NotoSansDevanagari-Regular.ttf",
-    "NotoSansBengali-Regular.ttf":
-        "https://github.com/notofonts/bengali/raw/main/fonts/ttf/NotoSansBengali-Regular.ttf",
-    "NotoSansTamil-Regular.ttf":
-        "https://github.com/notofonts/tamil/raw/main/fonts/ttf/NotoSansTamil-Regular.ttf",
-    "NotoSansTelugu-Regular.ttf":
-        "https://github.com/notofonts/telugu/raw/main/fonts/ttf/NotoSansTelugu-Regular.ttf",
-    "NotoSansKannada-Regular.ttf":
-        "https://github.com/notofonts/kannada/raw/main/fonts/ttf/NotoSansKannada-Regular.ttf",
-    "NotoSansMalayalam-Regular.ttf":
-        "https://github.com/notofonts/malayalam/raw/main/fonts/ttf/NotoSansMalayalam-Regular.ttf",
-    "NotoSansGujarati-Regular.ttf":
-        "https://github.com/notofonts/gujarati/raw/main/fonts/ttf/NotoSansGujarati-Regular.ttf",
-    "NotoSansGurmukhi-Regular.ttf":
-        "https://github.com/notofonts/gurmukhi/raw/main/fonts/ttf/NotoSansGurmukhi-Regular.ttf",
-    "NotoSansOriya-Regular.ttf":
-        "https://github.com/notofonts/oriya/raw/main/fonts/ttf/NotoSansOriya-Regular.ttf",
-    "NotoNaskhArabic-Regular.ttf":
-        "https://github.com/notofonts/naskh-arabic/raw/main/fonts/ttf/NotoNaskhArabic-Regular.ttf"
-}
-
-# Auto-download fonts once
-for font_name, url in font_urls.items():
-    if not os.path.exists(font_name):
-        urllib.request.urlretrieve(url, font_name)
-
-# Mapping selected language → correct font file
-language_font_map = {
-    "English": "NotoSansDevanagari-Regular",
-    "हिन्दी (Hindi)": "NotoSansDevanagari-Regular",
-    "मराठी (Marathi)": "NotoSansDevanagari-Regular",
-    "বাংলা (Bengali)": "NotoSansBengali-Regular",
-    "தமிழ் (Tamil)": "NotoSansTamil-Regular",
-    "తెలుగు (Telugu)": "NotoSansTelugu-Regular",
-    "ಕನ್ನಡ (Kannada)": "NotoSansKannada-Regular",
-    "മലയാളം (Malayalam)": "NotoSansMalayalam-Regular",
-    "ગુજરાતી (Gujarati)": "NotoSansGujarati-Regular",
-    "ਪੰਜਾਬੀ (Punjabi)": "NotoSansGurmukhi-Regular",
-    "ଓଡ଼ିଆ (Odia)": "NotoSansOriya-Regular",
-    "اردو (Urdu)": "NotoNaskhArabic-Regular"
-}
-
-# --- Show report on screen ---
 if st.session_state.report_text:
     st.markdown("### 🌿 Your Farm Report")
     st.markdown(
@@ -344,34 +294,58 @@ if st.session_state.report_text:
         unsafe_allow_html=True
     )
 
-    # --- Create PDF with Unicode font ---
-    pdf = FPDF()
-    pdf.add_page()
-
-    chosen_font = language_font_map.get(selected_language_display, "NotoSansDevanagari-Regular")
-    pdf.add_font("LangFont", "", chosen_font + ".ttf", uni=True)
-
-    pdf.set_font("LangFont", "", 16)
-    pdf.cell(0, 10, "Farm Report", ln=True, align="C")
-
-    pdf.set_font("LangFont", "", 12)
-    pdf.multi_cell(0, 8, st.session_state.report_text)
-
-    # Add leaf image to PDF
-    if uploaded_file:
-        with open("temp_leaf.jpg", "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        pdf.image("temp_leaf.jpg", x=10, w=100)
-
-    # Save PDF as UTF-8 bytes
-    pdf_bytes = pdf.output(dest="S").encode("utf-8")
-
+    # ------------- Create TXT (UTF-8) -------------
+    txt_bytes = st.session_state.report_text.encode("utf-8")
     st.download_button(
-        "📥 Download Farm Report (PDF)",
-        pdf_bytes,
-        "farm_report.pdf",
-        "application/pdf"
+        "📥 Download Farm Report (TXT, UTF-8)",
+        data=txt_bytes,
+        file_name="farm_report.txt",
+        mime="text/plain; charset=utf-8"
     )
+
+    # ------------- Create DOCX (no fonts required) -------------
+    # Attempt to create a .docx in-memory. Requires python-docx package.
+    try:
+        from docx import Document
+        from docx.shared import Pt
+        from io import BytesIO
+
+        doc = Document()
+        doc.add_heading("Farm Report", level=1)
+        # Add report text (preserve newlines)
+        for line in st.session_state.report_text.splitlines():
+            p = doc.add_paragraph(line)
+            # optional: set run font size (word will use system fonts for rendering)
+            for run in p.runs:
+                run.font.size = Pt(12)
+
+        # Add image (if present)
+        if uploaded_file:
+            # save file to BytesIO and then add
+            img_bytes = uploaded_file.getbuffer()
+            image_stream = BytesIO(img_bytes)
+            doc.add_page_break()
+            doc.add_paragraph("Attached leaf image:")
+            doc.add_picture(image_stream, width=Pt(300))  # adjust size if needed
+
+        f = BytesIO()
+        doc.save(f)
+        f.seek(0)
+        st.download_button(
+            "📥 Download Farm Report (DOCX)",
+            data=f.read(),
+            file_name="farm_report.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+    except Exception as e:
+        # If python-docx is not installed or any error occurs, show a message and continue
+        st.warning("DOCX export not available (python-docx missing). You can still download the TXT report.")
+        # For debugging you can uncomment the next line when developing (not in production)
+        # st.caption(f"DOCX error: {e}")
+
+    # ------------- Optional: continue offering PDF attempt (will fail if fonts missing) -------------
+    # If you still want to attempt server-side PDF embedding (may need fonts),
+    # you may keep your existing PDF creation code here, but keep in mind embedding fonts is required.
 
 
 
@@ -380,6 +354,7 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
