@@ -184,26 +184,6 @@ if page == "About":
     3. You generate a short report (in your chosen language).  
     4. Download the PDF report to share or print.
     """)
-    st.markdown("### Supported Crops & Diseases")
-    st.markdown("""
-    **Crops Covered**
-    - Millet  
-    - Potato  
-    - Rice  
-    - Sugarcane  
-    - Tea  
-    - Tomato  
-    - Wheat  
-
-    **Diseases Detected**
-    - Millet: Blast, Rust  
-    - Potato: Early Blight, Late Blight  
-    - Rice: Bacterial Blight, Brown Spot, Leaf Smut  
-    - Sugarcane: Red Rot, Rust, Yellowing  
-    - Tea: Gray Blight, Green Mirid Bug, Helopeltis  
-    - Tomato: Leaf Mold, Mosaic Virus, Septoria Leaf Spot  
-    - Wheat: Brown Rust, Loose Smut, Yellow Rust  
-    """)
 
 # ==========================
 # AI DETECTION PANEL
@@ -336,6 +316,7 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
