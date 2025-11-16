@@ -272,7 +272,7 @@ elif page == "AI Detection Panel":
                 }
 
                 data = {
-                    "model": "llama3-8b-8192",
+                    "model": "llama3-8b-instruct",
                     "messages": [
                         {"role": "system", "content": "You give farm advice."},
                         {"role": "user", "content": prompt}
@@ -353,3 +353,4 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
