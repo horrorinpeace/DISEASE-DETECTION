@@ -73,14 +73,12 @@ set_background_and_styles()
 header_col1, header_col2 = st.columns([0.9, 0.1])
 with header_col1:
     st.markdown("<h1 style='margin:0;'>🌱 FarmDoc</h1>", unsafe_allow_html=True)
-    st.markdown("<div class='caption'>Detect plant disease, view live farm sensor data, and generate a farmer-friendly treatment report in multiple languages.</div>", unsafe_allow_html=True)
-with header_col2:
-    st.write("")
+    st.markdown("<div class='caption'>Detect plant disease, view live farm sensor data, and get an easy-to-follow treatment report in multiple languages.</div>", unsafe_allow_html=True)
 
 st.markdown("---")
 
 # ==========================
-# LOAD MODEL (local classification model)
+# LOAD MODEL
 # ==========================
 model_path = hf_hub_download(
     repo_id="qwertymaninwork/Plant_Disease_Detection_System",
@@ -103,13 +101,13 @@ try:
         'TOMATO LEAF MOLD', 'TOMATO MOSAIC VIRUS', 'TOMATO SEPTORIA LEAF SPOT',
         'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT', 'WHEAT YELLOW RUST'
     ]
-except Exception as e:
-    st.warning(f"⚠ Could not load model: {e}")
+except:
+    st.warning("⚠ Could not load model.")
     model = None
     CLASS_NAMES = []
 
 # ==========================
-# SESSION STATE INIT
+# SESSION STATE
 # ==========================
 if "report_text" not in st.session_state:
     st.session_state.report_text = ""
@@ -117,23 +115,20 @@ if "report_text" not in st.session_state:
 # ==========================
 # SENSOR DATA
 # ==========================
-THINGSPEAK_CHANNEL_ID = 3152731
-READ_API_KEY = "8WGWK6AUAF74H6DJ"
-
 def fetch_sensor_data():
-    url = f"https://api.thingspeak.com/channels/{THINGSPEAK_CHANNEL_ID}/feeds.json?api_key={READ_API_KEY}&results=1"
+    url = f"https://api.thingspeak.com/channels/{3152731}/feeds.json?api_key=8WGWK6AUAF74H6DJ&results=1"
     try:
         response = requests.get(url, timeout=5)
         data = response.json()
         if data.get("feeds"):
             latest = data["feeds"][0]
             return {
-                "temperature": latest.get("field1"),
-                "humidity": latest.get("field2"),
-                "soil_moisture": latest.get("field3"),
-                "timestamp": latest.get("created_at")
+                "temperature": latest["field1"],
+                "humidity": latest["field2"],
+                "soil_moisture": latest["field3"],
+                "timestamp": latest["created_at"]
             }
-    except Exception:
+    except:
         pass
     return {"temperature": None, "humidity": None, "soil_moisture": None, "timestamp": None}
 
@@ -156,7 +151,7 @@ LANGUAGE_OPTIONS = {
 }
 
 # ==========================
-# SIDEBAR (menu + settings)
+# SIDEBAR MENU
 # ==========================
 st.sidebar.title("Menu")
 page = st.sidebar.radio("Go to", ["About", "AI Detection Panel"])
@@ -167,7 +162,7 @@ st.sidebar.markdown("### Settings")
 selected_language_display = st.sidebar.selectbox("Report language", list(LANGUAGE_OPTIONS.keys()))
 selected_language = LANGUAGE_OPTIONS[selected_language_display]
 
-api_key = st.sidebar.text_input("🔐 OpenRouter API key", type="password")
+api_key = st.sidebar.text_input("🔐 Groq API key", type="password")
 
 # ==========================
 # ABOUT PAGE
@@ -187,7 +182,7 @@ if page == "About":
     1. Take a photo of the leaf or upload an image.  
     2. The AI model predicts the likely disease.  
     3. You generate a short report (in your chosen language).  
-    4. Download the TXT or DOCX report to share or print.
+    4. Download the PDF report to share or print.
     """)
 
 # ==========================
@@ -227,10 +222,6 @@ elif page == "AI Detection Panel":
 
     sensor = fetch_sensor_data()
 
-    temp_safe = sensor.get("temperature") or "Not available"
-    humid_safe = sensor.get("humidity") or "Not available"
-    soil_safe = sensor.get("soil_moisture") or "Not available"
-
     if sensor["temperature"]:
         c1, c2, c3 = st.columns(3)
         c1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
@@ -241,109 +232,72 @@ elif page == "AI Detection Panel":
         st.warning("Waiting for live data...")
 
     # ==========================
-    # AI REPORT GENERATION (stable)
+    # AI REPORT GENERATION
     # ==========================
     st.header("Step 3 — Get Farm Report")
     st.markdown("<div class='card'>The AI will write the report in the selected language.</div>", unsafe_allow_html=True)
 
     if st.button("🧾 Generate Farm Report"):
-        # Reset previous report before generating a new one
         st.session_state.report_text = ""
-
         if not api_key:
-            st.error("Please enter your API key in the sidebar.")
+            st.error("Please enter your API key.")
         elif not uploaded_file:
             st.error("Please upload or capture an image.")
         elif model is None:
-            st.error("AI model not loaded locally.")
+            st.error("Model not loaded.")
         else:
-            with st.spinner("Generating report — this may take a few seconds..."):
-                # Build a safe, clear prompt
+            with st.spinner("Writing report..."):
+
                 prompt = f"""
-You are a helpful agricultural assistant. Write a short, clear farm report using simple words that a farmer can understand.
-Respond in {selected_language}.
-Use this exact format:
-- Disease Name: (name)
-- What It Means: simple explanation
-- What You Should Do: 2-3 easy steps for treatment
-- Prevention Tips: short and clear advice for next time
+                You are a helpful agricultural assistant.
+                Write the report in a simple way for farmers to understand in {selected_language}.
+                Use this format:
+                - Disease Name:
+                - What It Means:
+                - What You Should Do:
+                - Prevention Tips:
 
-Observed disease (English label): {st.session_state.get('predicted_class', 'Unknown')}
-Confidence: {st.session_state.get('confidence', 0)*100:.2f}%
+                Disease: {st.session_state.get('predicted_class')}
+                Confidence: {st.session_state.get('confidence')*100:.2f}%
 
-Farm conditions:
-- Temperature: {temp_safe}
-- Humidity: {humid_safe}
-- Soil Moisture: {soil_safe}
-"""
+                Conditions:
+                Temperature: {sensor['temperature']}
+                Humidity: {sensor['humidity']}
+                Soil Moisture: {sensor['soil_moisture']}
+                """
 
-                # OpenRouter request with retries and robust error handling
                 headers = {
-                           "Authorization": f"Bearer {api_key}",
-                           "Content-Type": "application/json",
-                           "X-Title": "FarmDoc AI"   # REQUIRED for apps
-                            }
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
 
+                data = {
+                    "model": "llama3-8b-8192",
+                    "messages": [
+                        {"role": "system", "content": "You give farm advice."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "max_tokens": 800,
+                    "temperature": 0.7
+                }
 
-                payload = {
-                           "model": "qwen2.5:7b-instruct",
-                          "messages": [
-                           {"role": "system", "content": "You give farm advice in a clear, simple way that farmers can understand."},
-                            {"role": "user", "content": prompt}
-                               ],
-                                     "max_tokens": 700,
-                                "temperature": 0.6
-                                   }
+                try:
+                    r = requests.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        headers=headers,
+                        json=data,
+                        timeout=45
+                    )
+                    r.raise_for_status()
+                    result = r.json()
+                    st.session_state.report_text = result["choices"][0]["message"]["content"]
+                    st.success("Report generated!")
 
-                max_attempts = 3
-                delay = 1.0
-                success = False
-                last_error = None
+                except Exception as e:
+                    st.error(f"API Error: {e}")
 
-                for attempt in range(1, max_attempts + 1):
-                    try:
-                        r = requests.post("https://openrouter.ai/api/v1/chat/completions",
-                                          headers=headers, json=payload, timeout=60)
-                        # raise for HTTP errors (4xx/5xx)
-                        r.raise_for_status()
-                        result = r.json()
-
-                        # Basic validation of response structure
-                        if "choices" in result and len(result["choices"]) > 0 and "message" in result["choices"][0]:
-                            content = result["choices"][0]["message"].get("content", "").strip()
-                            if content:
-                                st.session_state.report_text = content
-                                st.success("✅ Report generated successfully!")
-                                success = True
-                                break
-                            else:
-                                last_error = "Empty content returned by model."
-                        else:
-                            # include body if available for diagnosis
-                            last_error = f"Unexpected response format: {result}"
-                    except requests.exceptions.HTTPError as he:
-                        # include response body if present
-                        try:
-                            last_error = f"HTTP {r.status_code}: {r.text}"
-                        except Exception:
-                            last_error = f"HTTP error: {he}"
-                    except requests.exceptions.RequestException as re:
-                        last_error = f"Request error: {re}"
-                    except Exception as e:
-                        last_error = f"Unexpected error: {e}"
-
-                    # backoff before next attempt (don't exceed reasonable wait)
-                    time.sleep(delay)
-                    delay *= 2
-
-                if not success:
-                    st.error("❌ Could not generate report. " + (last_error or "Unknown error."))
-                    # helpful debugging info (compact)
-                    st.caption("If this persists: check your API key, quota, and network connectivity.")
-
-    # ==========================
 # ==========================
-# SHOW REPORT (Multilingual Safe: TXT + DOCX)
+# SHOW REPORT (TXT + DOCX)
 # ==========================
 if st.session_state.report_text:
     st.markdown("### 🌿 Your Farm Report")
@@ -352,7 +306,6 @@ if st.session_state.report_text:
         unsafe_allow_html=True
     )
 
-    # -------- TXT Export (UTF-8, always works) --------
     txt_bytes = st.session_state.report_text.encode("utf-8")
     st.download_button(
         "📥 Download Farm Report (TXT)",
@@ -361,7 +314,6 @@ if st.session_state.report_text:
         mime="text/plain; charset=utf-8"
     )
 
-    # -------- DOCX Export (also supports all languages) --------
     try:
         from docx import Document
         from docx.shared import Pt
@@ -370,13 +322,11 @@ if st.session_state.report_text:
         doc = Document()
         doc.add_heading("Farm Report", level=1)
 
-        # Add multiline report
         for line in st.session_state.report_text.splitlines():
             p = doc.add_paragraph(line)
             for run in p.runs:
                 run.font.size = Pt(12)
 
-        # Add image if provided
         if uploaded_file:
             img_bytes = uploaded_file.getbuffer()
             image_stream = BytesIO(img_bytes)
@@ -384,7 +334,6 @@ if st.session_state.report_text:
             doc.add_paragraph("Attached leaf image:")
             doc.add_picture(image_stream, width=Pt(300))
 
-        # Save docx to memory
         f = BytesIO()
         doc.save(f)
         f.seek(0)
@@ -396,7 +345,7 @@ if st.session_state.report_text:
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
 
-    except Exception as e:
+    except:
         st.warning("DOCX export not available. Please install python-docx in requirements.txt.")
 
 # ==========================
@@ -404,5 +353,3 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
-
-
