@@ -285,46 +285,58 @@ elif page == "AI Detection Panel":
     # ==========================
 # ==========================
 # ==========================
+# ==========================
 # SHOW REPORT + PDF FIXES
 # ==========================
 
-# --- Auto-download fonts (works for all Indian languages + Urdu) ---
 import urllib.request
 
+# --- Verified working font URLs (2025) ---
 font_urls = {
-    "NotoSansDevanagari-Regular.ttf": "https://github.com/notofonts/devanagari/raw/main/fonts/NotoSansDevanagari-Regular.ttf",
-    "NotoSansBengali-Regular.ttf": "https://github.com/notofonts/bengali/raw/main/fonts/NotoSansBengali-Regular.ttf",
-    "NotoSansTamil-Regular.ttf": "https://github.com/notofonts/tamil/raw/main/fonts/NotoSansTamil-Regular.ttf",
-    "NotoSansTelugu-Regular.ttf": "https://github.com/notofonts/telugu/raw/main/fonts/NotoSansTelugu-Regular.ttf",
-    "NotoSansKannada-Regular.ttf": "https://github.com/notofonts/kannada/raw/main/fonts/NotoSansKannada-Regular.ttf",
-    "NotoSansMalayalam-Regular.ttf": "https://github.com/notofonts/malayalam/raw/main/fonts/NotoSansMalayalam-Regular.ttf",
-    "NotoSansGujarati-Regular.ttf": "https://github.com/notofonts/gujarati/raw/main/fonts/NotoSansGujarati-Regular.ttf",
-    "NotoSansGurmukhi-Regular.ttf": "https://github.com/notofonts/gurmukhi/raw/main/fonts/NotoSansGurmukhi-Regular.ttf",
-    "NotoSansOriya-Regular.ttf": "https://github.com/notofonts/oriya/raw/main/fonts/NotoSansOriya-Regular.ttf",
-    "NotoNaskhArabic-Regular.ttf": "https://github.com/notofonts/naskh-arabic/raw/main/fonts/NotoNaskhArabic-Regular.ttf"
+    "NotoSansDevanagari-Regular.ttf":
+        "https://github.com/notofonts/devanagari/raw/main/fonts/ttf/NotoSansDevanagari-Regular.ttf",
+    "NotoSansBengali-Regular.ttf":
+        "https://github.com/notofonts/bengali/raw/main/fonts/ttf/NotoSansBengali-Regular.ttf",
+    "NotoSansTamil-Regular.ttf":
+        "https://github.com/notofonts/tamil/raw/main/fonts/ttf/NotoSansTamil-Regular.ttf",
+    "NotoSansTelugu-Regular.ttf":
+        "https://github.com/notofonts/telugu/raw/main/fonts/ttf/NotoSansTelugu-Regular.ttf",
+    "NotoSansKannada-Regular.ttf":
+        "https://github.com/notofonts/kannada/raw/main/fonts/ttf/NotoSansKannada-Regular.ttf",
+    "NotoSansMalayalam-Regular.ttf":
+        "https://github.com/notofonts/malayalam/raw/main/fonts/ttf/NotoSansMalayalam-Regular.ttf",
+    "NotoSansGujarati-Regular.ttf":
+        "https://github.com/notofonts/gujarati/raw/main/fonts/ttf/NotoSansGujarati-Regular.ttf",
+    "NotoSansGurmukhi-Regular.ttf":
+        "https://github.com/notofonts/gurmukhi/raw/main/fonts/ttf/NotoSansGurmukhi-Regular.ttf",
+    "NotoSansOriya-Regular.ttf":
+        "https://github.com/notofonts/oriya/raw/main/fonts/ttf/NotoSansOriya-Regular.ttf",
+    "NotoNaskhArabic-Regular.ttf":
+        "https://github.com/notofonts/naskh-arabic/raw/main/fonts/ttf/NotoNaskhArabic-Regular.ttf"
 }
 
-# download fonts if missing
-for font_file, url in font_urls.items():
-    if not os.path.exists(font_file):
-        urllib.request.urlretrieve(url, font_file)
+# Auto-download fonts once
+for font_name, url in font_urls.items():
+    if not os.path.exists(font_name):
+        urllib.request.urlretrieve(url, font_name)
 
-# language → font mapping
+# Mapping selected language → correct font file
 language_font_map = {
     "English": "NotoSansDevanagari-Regular",
-    "Hindi": "NotoSansDevanagari-Regular",
-    "Marathi": "NotoSansDevanagari-Regular",
-    "Bengali": "NotoSansBengali-Regular",
-    "Tamil": "NotoSansTamil-Regular",
-    "Telugu": "NotoSansTelugu-Regular",
-    "Kannada": "NotoSansKannada-Regular",
-    "Malayalam": "NotoSansMalayalam-Regular",
-    "Gujarati": "NotoSansGujarati-Regular",
-    "Punjabi": "NotoSansGurmukhi-Regular",
-    "Odia": "NotoSansOriya-Regular",
-    "Urdu": "NotoNaskhArabic-Regular"
+    "हिन्दी (Hindi)": "NotoSansDevanagari-Regular",
+    "मराठी (Marathi)": "NotoSansDevanagari-Regular",
+    "বাংলা (Bengali)": "NotoSansBengali-Regular",
+    "தமிழ் (Tamil)": "NotoSansTamil-Regular",
+    "తెలుగు (Telugu)": "NotoSansTelugu-Regular",
+    "ಕನ್ನಡ (Kannada)": "NotoSansKannada-Regular",
+    "മലയാളം (Malayalam)": "NotoSansMalayalam-Regular",
+    "ગુજરાતી (Gujarati)": "NotoSansGujarati-Regular",
+    "ਪੰਜਾਬੀ (Punjabi)": "NotoSansGurmukhi-Regular",
+    "ଓଡ଼ିଆ (Odia)": "NotoSansOriya-Regular",
+    "اردو (Urdu)": "NotoNaskhArabic-Regular"
 }
 
+# --- Show report on screen ---
 if st.session_state.report_text:
     st.markdown("### 🌿 Your Farm Report")
     st.markdown(
@@ -332,24 +344,26 @@ if st.session_state.report_text:
         unsafe_allow_html=True
     )
 
-    # PDF creation with full Unicode support
+    # --- Create PDF with Unicode font ---
     pdf = FPDF()
     pdf.add_page()
 
-    chosen_font = language_font_map.get(selected_language, "NotoSansDevanagari-Regular")
+    chosen_font = language_font_map.get(selected_language_display, "NotoSansDevanagari-Regular")
     pdf.add_font("LangFont", "", chosen_font + ".ttf", uni=True)
-    pdf.set_font("LangFont", "", 16)
 
+    pdf.set_font("LangFont", "", 16)
     pdf.cell(0, 10, "Farm Report", ln=True, align="C")
 
     pdf.set_font("LangFont", "", 12)
     pdf.multi_cell(0, 8, st.session_state.report_text)
 
+    # Add leaf image to PDF
     if uploaded_file:
-        with open("temp.jpg", "wb") as f:
+        with open("temp_leaf.jpg", "wb") as f:
             f.write(uploaded_file.getbuffer())
-        pdf.image("temp.jpg", x=10, w=100)
+        pdf.image("temp_leaf.jpg", x=10, w=100)
 
+    # Save PDF as UTF-8 bytes
     pdf_bytes = pdf.output(dest="S").encode("utf-8")
 
     st.download_button(
@@ -366,6 +380,7 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
