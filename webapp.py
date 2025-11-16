@@ -46,8 +46,6 @@ def set_background():
             border-radius: 12px !important;
             padding: 10px 25px !important;
         }
-
-        /* ✅ Flip live camera preview horizontally */
         video {
             transform: scaleX(-1) !important;
         }
@@ -56,7 +54,6 @@ def set_background():
         unsafe_allow_html=True
     )
 
-# ✅ Minimal clean gradient background
 set_background()
 
 # ==========================
@@ -90,6 +87,12 @@ except Exception as e:
     st.warning(f"⚠ Could not load model: {e}")
     model = None
     CLASS_NAMES = []
+
+# ==========================
+# SESSION STATE INIT (FIX ADDED)
+# ==========================
+if "report_text" not in st.session_state:
+    st.session_state.report_text = ""
 
 # ==========================
 # SENSOR DATA
@@ -147,7 +150,6 @@ elif page == "AI Detection Panel":
 
     api_key = st.sidebar.text_input("🔐 Enter your OpenRouter API key (starts with sk-or-...)", type="password")
 
-    # 🎥 Camera live view is now mirrored via CSS
     uploaded_file = st.camera_input("📸 Take a photo of your crop leaf")
     if uploaded_file is None:
         uploaded_file = st.file_uploader("Or upload a leaf image", type=["png", "jpg", "jpeg"])
@@ -176,8 +178,6 @@ elif page == "AI Detection Panel":
     count = st_autorefresh(interval=5000, limit=None, key="sensor_refresh")
 
     sensor = fetch_sensor_data()
-
-    sensor = fetch_sensor_data()
     if sensor["temperature"]:
         col1, col2, col3 = st.columns(3)
         col1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
@@ -192,9 +192,6 @@ elif page == "AI Detection Panel":
     # ==========================
     st.header("Step 3: Get AI Farm Report")
 
-    if "report_text" not in st.session_state:
-        st.session_state.report_text = ""
-
     if st.button("🧾 Generate Farm Report"):
         if not api_key:
             st.error("Please enter your OpenRouter API key in the sidebar.")
@@ -206,15 +203,8 @@ elif page == "AI Detection Panel":
             with st.spinner("The AI is writing your report in simple farmer language..."):
                 prompt = f"""
                 You are a helpful agricultural assistant speaking to a farmer.
-                Write a clear, short, and easy-to-understand farm report using simple words (no technical terms).
-                Explain what disease was found: {st.session_state.predicted_class} (confidence {st.session_state.confidence*100:.2f}%)
-                and how it affects the plant.
-
-                Use this format:
-                - Disease Name: (name)
-                - What It Means: simple explanation
-                - What You Should Do: 2-3 easy steps for treatment
-                - Prevention Tips: short and clear advice for next time
+                Write a clear, short, and easy-to-understand farm report using simple words.
+                Explain what disease was found: {st.session_state.predicted_class} (confidence {st.session_state.confidence*100:.2f}%).
 
                 Farm conditions:
                 - Temperature: {sensor['temperature']} °C
@@ -236,20 +226,22 @@ elif page == "AI Detection Panel":
                 try:
                     response = requests.post("https://openrouter.ai/api/v1/chat/completions",
                                              headers=headers, json=data, timeout=60)
-                    response.raise_for_status()
                     result = response.json()
                     full_text = result["choices"][0]["message"]["content"]
 
-                    st.session_state.report_text = full_text
+                    st.session_state.report_text = full_text  # ✅ stored permanently
                     st.success("✅ Report generated successfully!")
-                    st.markdown("### 🌿 Your Farm Report\n" + full_text)
                 except Exception as e:
                     st.error(f"❌ Error generating report: {e}")
 
     # ==========================
-    # DOWNLOAD REPORT
+    # SHOW REPORT (PERSISTS AFTER REFRESH)
     # ==========================
     if st.session_state.report_text:
+        st.markdown("### 🌿 Your Farm Report")
+        st.write(st.session_state.report_text)
+
+        # PDF generation
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", "B", 16)
@@ -257,8 +249,8 @@ elif page == "AI Detection Panel":
         pdf.set_font("Arial", "", 12)
         pdf.multi_cell(0, 8, st.session_state.report_text)
 
-        temp_img_path = "temp_image.jpg"
         if uploaded_file:
+            temp_img_path = "temp_image.jpg"
             with open(temp_img_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
             pdf.image(temp_img_path, x=10, y=None, w=100)
@@ -272,8 +264,9 @@ elif page == "AI Detection Panel":
             mime="application/pdf"
         )
 
+
 # ==========================
 # FOOTER
 # ==========================
 st.markdown("---")
-st.markdown("FarmDoc © 2025 — Helping Farmers Grow Smarter")
+st.markdown("FarmDoc © 2025 — Helping Farmers Grow Smarter")
