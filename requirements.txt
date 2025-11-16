@@ -9,4 +9,7 @@ streamlit-autorefresh
 rich<14
 flask
 python-docx
+fastapi
+uvicorn
+pydantic
 requests
