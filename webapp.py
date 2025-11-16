@@ -285,7 +285,7 @@ elif page == "AI Detection Panel":
     # ==========================
 # ==========================
 # ==========================
-# SHOW REPORT + DOCX/TXT fallback (multilingual-safe)
+# SHOW REPORT (Multilingual Safe: TXT + DOCX)
 # ==========================
 if st.session_state.report_text:
     st.markdown("### 🌿 Your Farm Report")
@@ -294,7 +294,7 @@ if st.session_state.report_text:
         unsafe_allow_html=True
     )
 
-    # ------------- Create TXT (UTF-8) -------------
+    # -------- TXT Export (UTF-8, always works) --------
     txt_bytes = st.session_state.report_text.encode("utf-8")
     st.download_button(
         "📥 Download Farm Report (TXT, UTF-8)",
@@ -303,8 +303,7 @@ if st.session_state.report_text:
         mime="text/plain; charset=utf-8"
     )
 
-    # ------------- Create DOCX (no fonts required) -------------
-    # Attempt to create a .docx in-memory. Requires python-docx package.
+    # -------- DOCX Export (also supports all languages) --------
     try:
         from docx import Document
         from docx.shared import Pt
@@ -312,40 +311,36 @@ if st.session_state.report_text:
 
         doc = Document()
         doc.add_heading("Farm Report", level=1)
-        # Add report text (preserve newlines)
+
+        # Add multiline report
         for line in st.session_state.report_text.splitlines():
             p = doc.add_paragraph(line)
-            # optional: set run font size (word will use system fonts for rendering)
             for run in p.runs:
                 run.font.size = Pt(12)
 
-        # Add image (if present)
+        # Add image if provided
         if uploaded_file:
-            # save file to BytesIO and then add
             img_bytes = uploaded_file.getbuffer()
             image_stream = BytesIO(img_bytes)
             doc.add_page_break()
             doc.add_paragraph("Attached leaf image:")
-            doc.add_picture(image_stream, width=Pt(300))  # adjust size if needed
+            doc.add_picture(image_stream, width=Pt(300))
 
+        # Save docx to memory
         f = BytesIO()
         doc.save(f)
         f.seek(0)
+
         st.download_button(
             "📥 Download Farm Report (DOCX)",
             data=f.read(),
             file_name="farm_report.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
-    except Exception as e:
-        # If python-docx is not installed or any error occurs, show a message and continue
-        st.warning("DOCX export not available (python-docx missing). You can still download the TXT report.")
-        # For debugging you can uncomment the next line when developing (not in production)
-        # st.caption(f"DOCX error: {e}")
 
-    # ------------- Optional: continue offering PDF attempt (will fail if fonts missing) -------------
-    # If you still want to attempt server-side PDF embedding (may need fonts),
-    # you may keep your existing PDF creation code here, but keep in mind embedding fonts is required.
+    except Exception as e:
+        st.warning("DOCX export not available. Please install python-docx in requirements.txt.")
+
 
 
 
@@ -354,6 +349,7 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
