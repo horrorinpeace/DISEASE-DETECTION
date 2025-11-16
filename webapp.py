@@ -238,64 +238,64 @@ elif page == "AI Detection Panel":
     st.markdown("<div class='card'>The AI will write the report in the selected language.</div>", unsafe_allow_html=True)
 
 if st.button("🧾 Generate Farm Report"):
-    st.session_state.report_text = ""
-    if not api_key:
-        st.error("Please enter your Groq API key.")
-    elif not uploaded_file:
-        st.error("Please upload or capture an image.")
-    elif model is None:
-        st.error("Model not loaded.")
-    else:
-        with st.spinner("Writing report..."):
+        st.session_state.report_text = ""
+        if not api_key:
+            st.error("Please enter your Groq API key.")
+        elif not uploaded_file:
+            st.error("Please upload or capture an image.")
+        elif model is None:
+            st.error("Model not loaded.")
+        else:
+            with st.spinner("Writing report..."):
 
-            prompt = f"""
-            You are a helpful agricultural assistant.
-            Write the report in a simple way for farmers to understand in {selected_language}.
-            Use this format:
-            - Disease Name:
-            - What It Means:
-            - What You Should Do:
-            - Prevention Tips:
+                prompt = f"""
+                You are a helpful agricultural assistant.
+                Write the report in a simple way for farmers to understand in {selected_language}.
+                Use this format:
+                - Disease Name:
+                - What It Means:
+                - What You Should Do:
+                - Prevention Tips:
 
-            Disease: {st.session_state.get('predicted_class')}
-            Confidence: {st.session_state.get('confidence')*100:.2f}%
+                Disease: {st.session_state.get('predicted_class')}
+                Confidence: {st.session_state.get('confidence')*100:.2f}%
 
-            Conditions:
-            Temperature: {sensor['temperature']}
-            Humidity: {sensor['humidity']}
-            Soil Moisture: {sensor['soil_moisture']}
-            """
+                Conditions:
+                Temperature: {sensor['temperature']}
+                Humidity: {sensor['humidity']}
+                Soil Moisture: {sensor['soil_moisture']}
+                """
 
-            url = "https://api.groq.com/openai/v1/chat/completions"
+                url = "https://api.groq.com/openai/v1/chat/completions"
 
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
 
-            data = {
-                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
-                "messages": [
-                    {"role": "system", "content": "You give farm advice."},
-                    {"role": "user", "content": prompt}
-                ],
-                "temperature": 0.6,
-                "max_completion_tokens": 800,
-                "top_p": 1,
-                "stream": False
-            }
+                data = {
+                    "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                    "messages": [
+                        {"role": "system", "content": "You give farm advice."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.6,
+                    "max_completion_tokens": 800,
+                    "top_p": 1,
+                    "stream": False
+                }
 
-            try:
-                r = requests.post(url, headers=headers, json=data, timeout=40)
-                r.raise_for_status()
-                result = r.json()
-                st.session_state.report_text = result["choices"][0]["message"]["content"]
-                st.success("Report generated!")
+                try:
+                    r = requests.post(url, headers=headers, json=data, timeout=40)
+                    r.raise_for_status()
+                    result = r.json()
+                    st.session_state.report_text = result["choices"][0]["message"]["content"]
+                    st.success("Report generated!")
 
-            except requests.exceptions.HTTPError as http_err:
-                st.error(f"HTTP Error: {http_err}")
-            except Exception as e:
-                st.error(f"Error: {e}")
+                except requests.exceptions.HTTPError as http_err:
+                    st.error(f"HTTP Error: {http_err}")
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
 
 # ==========================
@@ -355,6 +355,7 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
