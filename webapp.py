@@ -184,7 +184,7 @@ if page == "About":
     3. You generate a short report (in your chosen language).  
     4. Download the PDF report to share or print.
     """)
-        st.markdown("### Supported Crops & Diseases")
+    st.markdown("### Supported Crops & Diseases")
     st.markdown("""
     **Crops Covered**
     - Millet  
@@ -336,6 +336,7 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
