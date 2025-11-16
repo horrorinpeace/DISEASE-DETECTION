@@ -200,7 +200,7 @@ elif page == "AI Detection Panel":
         elif model is None:
             st.error("AI model not loaded.")
         else:
-            with st.spinner("The AI is writing your report in simple farmer language..."):
+            with st.spinner("The AI is writing your report in simple language..."):
                 prompt = f"""
                 You are a helpful agricultural assistant speaking to a farmer.
                 Write a clear, short, and easy-to-understand farm report using simple words.
@@ -270,4 +270,5 @@ elif page == "AI Detection Panel":
 # ==========================
 st.markdown("---")
 st.markdown("FarmDoc © 2025 — Helping Farmers Grow Smarter")
+
 
