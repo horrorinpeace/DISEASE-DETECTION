@@ -10,17 +10,44 @@ import tensorflow as tf
 import os
 import json
 import time
+from types import MethodType
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 
 # ==========================
-# DISABLE AUGMENTATION INSIDE MODEL (FIX)
+# ROBUST: disable augmentation inside model (recursive + bound method)
 # ==========================
-def disable_augmentation(model):
-    for layer in model.layers:
-        if "augmentation" in layer.name or "random" in layer.name:
-            layer.trainable = False
-            # override call() to skip augmentation at inference
-            layer.call = lambda x, training=False: x
+def disable_augmentation_layers(model):
+    disabled = []
+
+    def identity_call(self, inputs, training=False):
+        # simply return inputs (no augmentation)
+        return inputs
+
+    def walk(layer):
+        # check layer name/class for augmentation-like indicators
+        lname = getattr(layer, "name", "").lower()
+        cname = layer.__class__.__name__.lower()
+
+        if ("augmentation" in lname) or any(k in cname for k in ["random", "flip", "rotate", "rotation", "zoom", "contrast", "crop"]):
+            try:
+                # bind the identity_call as a method on this layer instance
+                layer.call = MethodType(identity_call, layer)
+                layer.trainable = False
+                disabled.append(layer.name)
+            except Exception:
+                pass
+
+        # if nested (Sequential / Model), walk its inner layers
+        if hasattr(layer, "layers") and layer.layers:
+            for sub in layer.layers:
+                walk(sub)
+
+    walk(model)
+    # print which layers were disabled so you can verify in logs
+    if disabled:
+        print("Disabled augmentation-like layers:", disabled)
+    else:
+        print("No augmentation-like layers found to disable.")
     return model
 
 # ==========================
@@ -100,7 +127,7 @@ model_path = hf_hub_download(
 @st.cache_resource
 def load_model():
     m = tf.keras.models.load_model(model_path, compile=False, safe_mode=False)
-    m = disable_augmentation(m)     # ⭐ FIX APPLIED HERE
+    m = disable_augmentation_layers(m)     # ⭐ improved fix applied here
     return m
 
 try:
@@ -361,4 +388,3 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
-
