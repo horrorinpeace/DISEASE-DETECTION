@@ -95,7 +95,7 @@ try:
 except:
 # SESSION STATE
 # ==========================
-if "report_text" not in st.session_state:
+ if "report_text" not in st.session_state:
     st.session_state.report_text = ""
 
 # ==========================
@@ -343,6 +343,7 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
