@@ -204,7 +204,7 @@ elif page == "AI Detection Panel":
             arr = tf.keras.preprocessing.image.img_to_array(img)
             arr = np.expand_dims(arr, axis=0)
 
-    # 🔥 IMPORTANT: MobileNetV2 preprocessing
+            # 🔥 IMPORTANT: MobileNetV2 preprocessing (FIXED INDENTATION)
             arr = preprocess_input(arr)
 
             preds = model.predict(arr)
@@ -233,7 +233,6 @@ elif page == "AI Detection Panel":
     else:
         st.warning("Waiting for live data...")
 
-    # ==========================
     # ==========================
     # AI REPORT GENERATION
     # ==========================
@@ -359,17 +358,3 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
