@@ -13,6 +13,17 @@ import time
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 
 # ==========================
+# DISABLE AUGMENTATION INSIDE MODEL (FIX)
+# ==========================
+def disable_augmentation(model):
+    for layer in model.layers:
+        if "augmentation" in layer.name or "random" in layer.name:
+            layer.trainable = False
+            # override call() to skip augmentation at inference
+            layer.call = lambda x, training=False: x
+    return model
+
+# ==========================
 # PAGE CONFIG
 # ==========================
 st.set_page_config(
@@ -88,7 +99,9 @@ model_path = hf_hub_download(
 
 @st.cache_resource
 def load_model():
-    return tf.keras.models.load_model(model_path, compile=False, safe_mode=False)
+    m = tf.keras.models.load_model(model_path, compile=False, safe_mode=False)
+    m = disable_augmentation(m)     # ⭐ FIX APPLIED HERE
+    return m
 
 try:
     model = load_model()
@@ -99,7 +112,6 @@ except Exception as e:
     CLASS_NAMES = []
 
 # SESSION STATE
-# ==========================
 if "report_text" not in st.session_state:
     st.session_state.report_text = ""
 
@@ -122,13 +134,7 @@ def fetch_sensor_data():
     except:
         pass
 
-    return {
-        "temperature": None,
-        "humidity": None,
-        "soil_moisture": None,
-        "timestamp": None
-    }
-
+    return {"temperature": None, "humidity": None, "soil_moisture": None, "timestamp": None}
 
 # ==========================
 # MULTI-LANGUAGE OPTIONS
@@ -204,8 +210,7 @@ elif page == "AI Detection Panel":
             arr = tf.keras.preprocessing.image.img_to_array(img)
             arr = np.expand_dims(arr, axis=0)
 
-            # 🔥 IMPORTANT: MobileNetV2 preprocessing (FIXED INDENTATION)
-            arr = preprocess_input(arr)
+            arr = preprocess_input(arr)   # correct preprocessing
 
             preds = model.predict(arr)
             confidence = np.max(preds)
@@ -213,7 +218,7 @@ elif page == "AI Detection Panel":
 
             st.session_state.predicted_class = predicted_class
             st.session_state.confidence = confidence
- 
+
             st.success(f"🌿 Detected: {predicted_class} — {confidence*100:.2f}%")
 
     # ==========================
@@ -298,8 +303,6 @@ elif page == "AI Detection Panel":
                     st.error(f"HTTP Error: {http_err}")
                 except Exception as e:
                     st.error(f"Error: {e}")
-
-
 
 # ==========================
 # SHOW REPORT (TXT + DOCX)
