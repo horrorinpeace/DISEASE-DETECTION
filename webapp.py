@@ -114,7 +114,7 @@ def fetch_sensor_data():
                 "soil_moisture": latest["field3"],
                 "timestamp": latest["created_at"]
             }
-    except:
+except:
         pass
     return {"temperature": None, "humidity": None, "soil_moisture": None, "timestamp": None}
 
@@ -343,6 +343,7 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
