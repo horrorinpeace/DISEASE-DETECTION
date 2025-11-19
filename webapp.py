@@ -91,18 +91,31 @@ def load_model():
 
 try:
     model = load_model()
-    CLASS_NAMES = ['CURRY POWDERY MILDEW', 'HEALTHY MILLET', 'HEALTHY POTATO', 'HEALTHY RICE', 'HEALTHY SUGARCANE', 'HEALTHY TEA LEAF', 'HEALTHY TOMATO', 'HEALTHY WHEAT', 'MILLETS BLAST', 'MILLETS RUST', 'POTATO EARLY BLIGHT', 'POTATO LATE BLIGHT', 'RICE BACTERIAL BLIGHT', 'RICE BROWN SPOT', 'RICE LEAF SMUT', 'SUGARCANE RED ROT', 'SUGARCANE RUST', 'SUGARCANE YELLOW', 'TEA GRAY BLIGHT', 'TEA GREEN MIRID BUG', 'TEA HELOPELTIS', 'TOMATO LEAF MOLD', 'TOMATO MOSAIC VIRUS', 'TOMATO SEPTORIA LEAF SPOT', 'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT', 'WHEAT YELLOW RUST']
-except:
+    CLASS_NAMES = [
+        'CURRY POWDERY MILDEW', 'HEALTHY MILLET', 'HEALTHY POTATO', 'HEALTHY RICE',
+        'HEALTHY SUGARCANE', 'HEALTHY TEA LEAF', 'HEALTHY TOMATO', 'HEALTHY WHEAT',
+        'MILLETS BLAST', 'MILLETS RUST', 'POTATO EARLY BLIGHT', 'POTATO LATE BLIGHT',
+        'RICE BACTERIAL BLIGHT', 'RICE BROWN SPOT', 'RICE LEAF SMUT',
+        'SUGARCANE RED ROT', 'SUGARCANE RUST', 'SUGARCANE YELLOW',
+        'TEA GRAY BLIGHT', 'TEA GREEN MIRID BUG', 'TEA HELOPELTIS',
+        'TOMATO LEAF MOLD', 'TOMATO MOSAIC VIRUS', 'TOMATO SEPTORIA LEAF SPOT',
+        'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT', 'WHEAT YELLOW RUST'
+    ]
+except Exception as e:
+    st.error(f"Model failed to load: {e}")
+    model = None
+    CLASS_NAMES = []
+
 # SESSION STATE
 # ==========================
- if "report_text" not in st.session_state:
+if "report_text" not in st.session_state:
     st.session_state.report_text = ""
 
 # ==========================
 # SENSOR DATA
 # ==========================
 def fetch_sensor_data():
-    url = f"https://api.thingspeak.com/channels/{3152731}/feeds.json?api_key=8WGWK6AUAF74H6DJ&results=1"
+    url = "https://api.thingspeak.com/channels/3152731/feeds.json?api_key=8WGWK6AUAF74H6DJ&results=1"
     try:
         response = requests.get(url, timeout=5)
         data = response.json()
@@ -114,9 +127,16 @@ def fetch_sensor_data():
                 "soil_moisture": latest["field3"],
                 "timestamp": latest["created_at"]
             }
-except:
+    except:
         pass
-    return {"temperature": None, "humidity": None, "soil_moisture": None, "timestamp": None}
+
+    return {
+        "temperature": None,
+        "humidity": None,
+        "soil_moisture": None,
+        "timestamp": None
+    }
+
 
 # ==========================
 # MULTI-LANGUAGE OPTIONS
@@ -343,6 +363,7 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
