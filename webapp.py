@@ -94,7 +94,7 @@ st.markdown("---")
 # ==========================
 model_path = hf_hub_download(
     repo_id="qwertymaninwork/Plant_Disease_Detection_System",
-    filename="plant_disease_model.h5"
+    filename="fix.h5"
 )
 
 @st.cache_resource
@@ -361,3 +361,4 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
