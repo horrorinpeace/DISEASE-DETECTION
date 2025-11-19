@@ -20,30 +20,25 @@ def disable_augmentation_layers(model):
     disabled = []
 
     def identity_call(self, inputs, training=False):
-        # simply return inputs (no augmentation)
         return inputs
 
     def walk(layer):
-        # check layer name/class for augmentation-like indicators
         lname = getattr(layer, "name", "").lower()
         cname = layer.__class__.__name__.lower()
 
         if ("augmentation" in lname) or any(k in cname for k in ["random", "flip", "rotate", "rotation", "zoom", "contrast", "crop"]):
             try:
-                # bind the identity_call as a method on this layer instance
                 layer.call = MethodType(identity_call, layer)
                 layer.trainable = False
                 disabled.append(layer.name)
             except Exception:
                 pass
 
-        # if nested (Sequential / Model), walk its inner layers
         if hasattr(layer, "layers") and layer.layers:
             for sub in layer.layers:
                 walk(sub)
 
     walk(model)
-    # print which layers were disabled so you can verify in logs
     if disabled:
         print("Disabled augmentation-like layers:", disabled)
     else:
@@ -127,7 +122,7 @@ model_path = hf_hub_download(
 @st.cache_resource
 def load_model():
     m = tf.keras.models.load_model(model_path, compile=False, safe_mode=False)
-    m = disable_augmentation_layers(m)     # ⭐ improved fix applied here
+    m = disable_augmentation_layers(m)
     return m
 
 try:
@@ -235,9 +230,7 @@ elif page == "AI Detection Panel":
         if model:
             img = image.resize((224, 224))
             arr = tf.keras.preprocessing.image.img_to_array(img)
-            arr = np.expand_dims(arr, axis=0)
-
-            arr = preprocess_input(arr)   # correct preprocessing
+            arr = np.expand_dims(arr, axis=0)   # ✔ FIX: DO NOT preprocess again
 
             preds = model.predict(arr)
             confidence = np.max(preds)
