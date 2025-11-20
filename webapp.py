@@ -237,13 +237,12 @@ elif page == "AI Detection Panel":
             arr = np.expand_dims(arr, axis=0)
 
             preds = model.predict(arr)
-            confidence = np.max(preds)
             predicted_class = CLASS_NAMES[np.argmax(preds)]
 
             st.session_state.predicted_class = predicted_class
             st.session_state.confidence = confidence
 
-            st.success(f"🌿 Detected: {predicted_class} — {confidence*100:.2f}%")
+            st.success(f"🌿 Detected: {predicted_class}")
 
     # ==========================
     # SENSOR DATA
@@ -385,3 +384,4 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
