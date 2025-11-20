@@ -240,8 +240,7 @@ elif page == "AI Detection Panel":
             predicted_class = CLASS_NAMES[np.argmax(preds)]
 
             st.session_state.predicted_class = predicted_class
-            st.session_state.confidence = confidence
-
+            
             st.success(f"🌿 Detected: {predicted_class}")
 
     # ==========================
@@ -288,7 +287,7 @@ elif page == "AI Detection Panel":
                 - Prevention Tips:
 
                 Disease: {st.session_state.get('predicted_class')}
-                Confidence: {st.session_state.get('confidence')*100:.2f}%
+                
 
                 Conditions:
                 Temperature: {sensor['temperature']}
@@ -384,4 +383,5 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
