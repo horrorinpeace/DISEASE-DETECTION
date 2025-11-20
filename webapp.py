@@ -1,6 +1,6 @@
 import io
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 import requests
@@ -164,7 +164,7 @@ def fetch_sensor_data():
 LANGUAGE_OPTIONS = {
     "English": "English",
     "हिन्दी (Hindi)": "Hindi",
-    "বাংলা (Bengali)": "Bengali",
+    "বাংলা (Bengali)": "Bengangi",
     "தமிழ் (Tamil)": "Tamil",
     "తెలుగు (Telugu)": "Telugu",
     "ಕನ್ನಡ (Kannada)": "Kannada",
@@ -225,12 +225,16 @@ elif page == "AI Detection Panel":
 
     if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
+
+        # ⭐⭐⭐ ONLY FIX ADDED ⭐⭐⭐
+        image = ImageOps.mirror(image)
+
         st.image(image, caption="🪴 This is the captured image being analyzed", width=300)
 
         if model:
             img = image.resize((224, 224))
             arr = tf.keras.preprocessing.image.img_to_array(img)
-            arr = np.expand_dims(arr, axis=0)   # ✔ FIX: DO NOT preprocess again
+            arr = np.expand_dims(arr, axis=0)
 
             preds = model.predict(arr)
             confidence = np.max(preds)
