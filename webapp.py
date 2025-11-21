@@ -1,6 +1,6 @@
 import io
 import numpy as np
-from PIL import Image, ImageOps
+from PIL import Image
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 import requests
@@ -24,7 +24,7 @@ def disable_augmentation_layers(model):
 
     def walk(layer):
         lname = getattr(layer, "name", "").lower()
-        cname = layer.__class__.__name__.lower()
+        cname = layer._class.name_.lower()
 
         if ("augmentation" in lname) or any(k in cname for k in ["random", "flip", "rotate", "rotation", "zoom", "contrast", "crop"]):
             try:
@@ -164,7 +164,7 @@ def fetch_sensor_data():
 LANGUAGE_OPTIONS = {
     "English": "English",
     "हिन्दी (Hindi)": "Hindi",
-    "বাংলা (Bengali)": "Bengangi",
+    "বাংলা (Bengali)": "Bengali",
     "தமிழ் (Tamil)": "Tamil",
     "తెలుగు (Telugu)": "Telugu",
     "ಕನ್ನಡ (Kannada)": "Kannada",
@@ -225,23 +225,21 @@ elif page == "AI Detection Panel":
 
     if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
-
-        # ⭐⭐⭐ ONLY FIX ADDED ⭐⭐⭐
-        image = ImageOps.mirror(image)
-
         st.image(image, caption="🪴 This is the captured image being analyzed", width=300)
 
         if model:
             img = image.resize((224, 224))
             arr = tf.keras.preprocessing.image.img_to_array(img)
-            arr = np.expand_dims(arr, axis=0)
+            arr = np.expand_dims(arr, axis=0)   # ✔ FIX: DO NOT preprocess again
 
             preds = model.predict(arr)
+            confidence = np.max(preds)
             predicted_class = CLASS_NAMES[np.argmax(preds)]
 
             st.session_state.predicted_class = predicted_class
-            
-            st.success(f"🌿 Detected: {predicted_class}")
+            st.session_state.confidence = confidence
+
+            st.success(f"🌿 Detected: {predicted_class} — {confidence*100:.2f}%")
 
     # ==========================
     # SENSOR DATA
@@ -261,7 +259,7 @@ elif page == "AI Detection Panel":
         st.warning("Waiting for live data...")
 
     # ==========================
-        # AI REPORT GENERATION
+    # AI REPORT GENERATION
     # ==========================
     st.header("Step 3 — Get Farm Report")
     st.markdown("<div class='card'>The AI will write the report in the selected language.</div>", unsafe_allow_html=True)
@@ -278,46 +276,18 @@ elif page == "AI Detection Panel":
             with st.spinner("Writing report..."):
 
                 prompt = f"""
-                You are a helpful agricultural assistant for farmers.
-
-                Write a VERY detailed, step-by-step farm advisory report in a simple way for farmers to understand in {selected_language}.
-
-                STRICT RULES (must follow all):
-                - Never skip information or stay vague.
-                - Always give specific names of fungicides/pesticides (generic name + 1–2 common brand examples if possible).
-                - ALWAYS give exact dose in:
-                  • ml or g per litre of water
-                  • ml or g per 15 L knapsack sprayer
-                  • total quantity per acre (or per hectare) and approximate water volume.
-                - Clearly mention:
-                  • how many times to spray
-                  • gap between sprays (in days)
-                  • waiting period before harvest, if needed.
-                - Clearly list ALL tools and materials needed:
-                  • type of sprayer
-                  • nozzle type
-                  • measuring cup/spoon
-                  • protective clothing (gloves, mask, etc.)
-                  • any other tools.
-                - Use only safe, commonly used agricultural practices. Do NOT suggest anything illegal or extremely dangerous.
-                - If you are not fully sure of an exact product name, give a best-practice generic recommendation (for example: “systemic fungicide from triazole group such as …”) instead of writing “depends” or “consult expert”.
-                - Fill EVERY section completely. Do NOT leave any bullet empty.
-
-                Use THIS EXACT FORMAT and fill each point with detailed, practical, farmer-friendly instructions:
-
+                You are a helpful agricultural assistant.
+                Write the report in a simple way for farmers to understand in {selected_language}.
+                Use this format:
                 - Disease Name:
                 - What It Means:
-                - Cause:
-                - Name of spray to be used & Amount to be sprayed:
-                - Tools and Materials Needed (with quantities):
-                - Step By Step Process For Treatment (with exact measurements and timing):
-                - How many times to spray & gap between sprays:
-                - Safety Precautions for Farmers:
+                - What You Should Do:
                 - Prevention Tips:
 
                 Disease: {st.session_state.get('predicted_class')}
+                Confidence: {st.session_state.get('confidence')*100:.2f}%
 
-                Conditions at the farm:
+                Conditions:
                 Temperature: {sensor['temperature']}
                 Humidity: {sensor['humidity']}
                 Soil Moisture: {sensor['soil_moisture']}
@@ -411,9 +381,3 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
-
-
-
-
-
-
