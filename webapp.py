@@ -14,6 +14,60 @@ from types import MethodType
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 
 # ==========================
+# TRANSLATION FALLBACK (Google Translate unofficial endpoint)
+# ==========================
+LANG_CODE_MAP = {
+    "English": "en",
+    "Hindi": "hi",
+    "Bengali": "bn",
+    "Tamil": "ta",
+    "Telugu": "te",
+    "Kannada": "kn",
+    "Malayalam": "ml",
+    "Marathi": "mr",
+    "Gujarati": "gu",
+    "Punjabi": "pa",
+    "Odia": "or",
+    "Urdu": "ur",
+}
+
+def translate_with_google(text, target_language_name):
+    """Translate English text to target_language using Google Translate unofficial endpoint."""
+    code = LANG_CODE_MAP.get(target_language_name, "en")
+    if code == "en":
+        return text  # no need to translate to English
+
+    try:
+        url = "https://translate.googleapis.com/translate_a/single"
+        params = {
+            "client": "gtx",
+            "sl": "en",   # source language (we assume fallback happens only when text is English)
+            "tl": code,   # target language code
+            "dt": "t",
+            "q": text
+        }
+        r = requests.get(url, params=params, timeout=15)
+        r.raise_for_status()
+        data = r.json()
+
+        # data[0] is a list of [translated_chunk, original_chunk, ...]
+        translated = "".join(chunk[0] for chunk in data[0] if chunk[0])
+        return translated if translated else text
+    except Exception:
+        # if anything fails, just return original text so app never breaks
+        return text
+
+def is_mostly_english(text: str) -> bool:
+    """Heuristic: checks if text is mostly ASCII letters (English-like)."""
+    if not text:
+        return False
+    total_letters = sum(c.isalpha() for c in text)
+    if total_letters == 0:
+        return False
+    ascii_letters = sum(c.isascii() and c.isalpha() for c in text)
+    return (ascii_letters / total_letters) > 0.85
+
+# ==========================
 # ROBUST: disable augmentation inside model (recursive + bound method)
 # ==========================
 def disable_augmentation_layers(model):
@@ -23,20 +77,22 @@ def disable_augmentation_layers(model):
         return inputs
 
     def walk(layer):
-            lname = getattr(layer, "name", "").lower()
-            cname = layer.__class__.__name__.lower()  # FIXED
+        lname = getattr(layer, "name", "").lower()
+        cname = layer.__class__.__name__.lower()  # FIXED
 
-            if ("augmentation" in lname) or any(k in cname for k in ["random", "flip", "rotate", "rotation", "zoom", "contrast", "crop"]):
-                try:
-                    layer.call = MethodType(identity_call, layer)
-                    layer.trainable = False
-                    disabled.append(layer.name)
-                except Exception:
-                    pass
+        if ("augmentation" in lname) or any(
+            k in cname for k in ["random", "flip", "rotate", "rotation", "zoom", "contrast", "crop"]
+        ):
+            try:
+                layer.call = MethodType(identity_call, layer)
+                layer.trainable = False
+                disabled.append(layer.name)
+            except Exception:
+                pass
 
-            if hasattr(layer, "layers") and layer.layers:
-                for sub in layer.layers:
-                    walk(sub)
+        if hasattr(layer, "layers") and layer.layers:
+            for sub in layer.layers:
+                walk(sub)
 
     walk(model)
     return model
@@ -123,7 +179,16 @@ def load_model():
 
 try:
     model = load_model()
-    CLASS_NAMES = ['CURRY POWDERY MILDEW', 'HEALTHY MILLET', 'HEALTHY POTATO', 'HEALTHY RICE', 'HEALTHY SUGARCANE', 'HEALTHY TEA LEAF', 'HEALTHY TOMATO', 'HEALTHY WHEAT', 'MILLETS BLAST', 'MILLETS RUST', 'POTATO EARLY BLIGHT', 'POTATO LATE BLIGHT', 'RICE BACTERIAL BLIGHT', 'RICE BROWN SPOT', 'RICE LEAF SMUT', 'SUGARCANE RED ROT', 'SUGARCANE RUST', 'SUGARCANE YELLOW', 'TEA GRAY BLIGHT', 'TEA GREEN MIRID BUG', 'TEA HELOPELTIS', 'TOMATO LEAF MOLD', 'TOMATO MOSAIC VIRUS', 'TOMATO SEPTORIA LEAF SPOT', 'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT', 'WHEAT YELLOW RUST']
+    CLASS_NAMES = [
+        'CURRY POWDERY MILDEW', 'HEALTHY MILLET', 'HEALTHY POTATO', 'HEALTHY RICE',
+        'HEALTHY SUGARCANE', 'HEALTHY TEA LEAF', 'HEALTHY TOMATO', 'HEALTHY WHEAT',
+        'MILLETS BLAST', 'MILLETS RUST', 'POTATO EARLY BLIGHT', 'POTATO LATE BLIGHT',
+        'RICE BACTERIAL BLIGHT', 'RICE BROWN SPOT', 'RICE LEAF SMUT', 'SUGARCANE RED ROT',
+        'SUGARCANE RUST', 'SUGARCANE YELLOW', 'TEA GRAY BLIGHT', 'TEA GREEN MIRID BUG',
+        'TEA HELOPELTIS', 'TOMATO LEAF MOLD', 'TOMATO MOSAIC VIRUS',
+        'TOMATO SEPTORIA LEAF SPOT', 'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT',
+        'WHEAT YELLOW RUST'
+    ]
 except Exception as e:
     st.error(f"Model failed to load: {e}")
     model = None
@@ -357,7 +422,20 @@ elif page == "AI Detection Panel":
                     r = requests.post(url, headers=headers, json=data, timeout=40)
                     r.raise_for_status()
                     result = r.json()
-                    st.session_state.report_text = result["choices"][0]["message"]["content"]
+
+                    # raw text from Llama
+                    raw_text = result["choices"][0]["message"]["content"]
+                    st.session_state.report_text = raw_text
+
+                    # ==========================
+                    # TRANSLATION FALLBACK LOGIC
+                    # ==========================
+                    selected_lang_name = st.session_state.selected_language
+                    if selected_lang_name != "English" and is_mostly_english(raw_text):
+                        translated = translate_with_google(raw_text, selected_lang_name)
+                        if translated:
+                            st.session_state.report_text = translated
+
                     st.success("Report generated!")
 
             except requests.exceptions.HTTPError as http_err:
