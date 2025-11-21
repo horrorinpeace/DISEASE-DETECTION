@@ -24,7 +24,8 @@ def disable_augmentation_layers(model):
 
     def walk(layer):
         lname = getattr(layer, "name", "").lower()
-        cname = layer._class.name_.lower()
+        # FIX: correct way to get class name
+        cname = layer.__class__.__name__.lower()
 
         if ("augmentation" in lname) or any(k in cname for k in ["random", "flip", "rotate", "rotation", "zoom", "contrast", "crop"]):
             try:
@@ -230,14 +231,13 @@ elif page == "AI Detection Panel":
         if model:
             img = image.resize((224, 224))
             arr = tf.keras.preprocessing.image.img_to_array(img)
-            arr = np.expand_dims(arr, axis=0)   # ✔ FIX: DO NOT preprocess again
+            arr = np.expand_dims(arr, axis=0)   # do not preprocess again if model already has preprocessing
 
             preds = model.predict(arr)
-        
+
             predicted_class = CLASS_NAMES[np.argmax(preds)]
 
             st.session_state.predicted_class = predicted_class
-            
 
             st.success(f"🌿 Detected: {predicted_class}")
 
@@ -249,7 +249,7 @@ elif page == "AI Detection Panel":
 
     sensor = fetch_sensor_data()
 
-    if sensor["temperature"]:
+    if sensor["temperature"] is not None:
         c1, c2, c3 = st.columns(3)
         c1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
         c2.metric("💧 Humidity", f"{sensor['humidity']} %")
@@ -384,7 +384,8 @@ if st.session_state.report_text:
             for run in p.runs:
                 run.font.size = Pt(12)
 
-        if uploaded_file:
+        # uploaded_file exists when report is generated in AI Detection Panel
+        if 'uploaded_file' in locals() and uploaded_file:
             img_bytes = uploaded_file.getbuffer()
             image_stream = BytesIO(img_bytes)
             doc.add_page_break()
@@ -410,5 +411,3 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
-
-
