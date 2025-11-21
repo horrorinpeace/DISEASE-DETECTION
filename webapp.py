@@ -284,6 +284,7 @@ elif page == "AI Detection Panel":
                 - Disease Name:
                 - What It Means:
                 - Cause:
+                -Spray to use & Amount to be sprayed:
                 - What You Should Do:
                 - Prevention Tips:
 
@@ -384,6 +385,7 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
 
