@@ -239,7 +239,7 @@ elif page == "AI Detection Panel":
             st.session_state.predicted_class = predicted_class
             
 
-            st.success(f"🌿 Detected: {predicted_class} — {confidence*100:.2f}%")
+            st.success(f"🌿 Detected: {predicted_class}")
 
     # ==========================
     # SENSOR DATA
@@ -410,4 +410,5 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
