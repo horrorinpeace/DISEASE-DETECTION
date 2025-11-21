@@ -23,20 +23,20 @@ def disable_augmentation_layers(model):
         return inputs
 
     def walk(layer):
-        lname = getattr(layer, "name", "").lower()
-        cname = layer.__class__.__name__.lower()  # FIXED
+            lname = getattr(layer, "name", "").lower()
+            cname = layer.__class__.__name__.lower()  # FIXED
 
-        if ("augmentation" in lname) or any(k in cname for k in ["random", "flip", "rotate", "rotation", "zoom", "contrast", "crop"]):
-            try:
-                layer.call = MethodType(identity_call, layer)
-                layer.trainable = False
-                disabled.append(layer.name)
-            except Exception:
-                pass
+            if ("augmentation" in lname) or any(k in cname for k in ["random", "flip", "rotate", "rotation", "zoom", "contrast", "crop"]):
+                try:
+                    layer.call = MethodType(identity_call, layer)
+                    layer.trainable = False
+                    disabled.append(layer.name)
+                except Exception:
+                    pass
 
-        if hasattr(layer, "layers") and layer.layers:
-            for sub in layer.layers:
-                walk(sub)
+            if hasattr(layer, "layers") and layer.layers:
+                for sub in layer.layers:
+                    walk(sub)
 
     walk(model)
     return model
@@ -136,6 +136,9 @@ if "report_text" not in st.session_state:
 if "selected_language" not in st.session_state:
     st.session_state.selected_language = "English"
 
+if "auto_refresh_on" not in st.session_state:
+    st.session_state.auto_refresh_on = True
+
 # ==========================
 # SENSOR DATA
 # ==========================
@@ -185,7 +188,7 @@ st.sidebar.markdown("### Settings")
 
 selected_language_display = st.sidebar.selectbox("Report language", list(LANGUAGE_OPTIONS.keys()))
 
-# FIX — language persistence
+# language persistence
 st.session_state.selected_language = LANGUAGE_OPTIONS[selected_language_display]
 
 api_key = st.sidebar.text_input("🔐 Groq API key", type="password")
@@ -241,26 +244,25 @@ elif page == "AI Detection Panel":
             st.success(f"🌿 Detected: {predicted_class}")
 
     # ==========================
-    # SENSOR DATA (SAFE REFRESH)
+    # SENSOR DATA (WITH CONTROLLED AUTO-REFRESH)
     # ==========================
     st.header("Step 2 — Live Farm Data")
 
-    sensor_placeholder = st.empty()
+    if st.session_state.auto_refresh_on:
+        count = st_autorefresh(interval=5000, limit=None, key="sensor_refresh")
+    else:
+        count = 0  # no-op when auto-refresh disabled
 
-    def update_sensor():
-        sensor = fetch_sensor_data()
-        with sensor_placeholder:
-            if sensor["temperature"] is not None:
-                c1, c2, c3 = st.columns(3)
-                c1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
-                c2.metric("💧 Humidity", f"{sensor['humidity']} %")
-                c3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
-                st.caption(f"Last updated: {sensor['timestamp']}")
-            else:
-                st.warning("Waiting for live data...")
+    sensor = fetch_sensor_data()
 
-    update_sensor()
-    st_autorefresh(interval=5000, key="sensor_refresh")  # SAFE — only refreshes sensor block
+    if sensor["temperature"] is not None:
+        c1, c2, c3 = st.columns(3)
+        c1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
+        c2.metric("💧 Humidity", f"{sensor['humidity']} %")
+        c3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
+        st.caption(f"Last updated: {sensor['timestamp']}")
+    else:
+        st.warning("Waiting for live data...")
 
     # ==========================
     # AI REPORT GENERATION
@@ -280,64 +282,91 @@ elif page == "AI Detection Panel":
         elif "predicted_class" not in st.session_state:
             st.error("No disease prediction available.")
         else:
-            with st.spinner("Writing report..."):
+            # pause auto-refresh while generating to avoid interruption
+            st.session_state.auto_refresh_on = False
 
-                prompt = f"""
-                You are a helpful agricultural assistant for farmers.
+            try:
+                with st.spinner("Writing report..."):
 
-                Write a VERY detailed, step-by-step farm advisory report in a simple way for farmers to understand in {st.session_state.selected_language}.
+                    prompt = f"""
+                    You are a helpful agricultural assistant for farmers.
 
-                STRICT RULES (must follow all):
-                - Never skip information or stay vague.
-                - Always give specific names of fungicides/pesticides (generic name + 1–2 common brand examples if possible).
-                - ALWAYS give exact dose in:
-                  • ml or g per litre of water
-                  • ml or g per 15 L knapsack sprayer
-                  • total quantity per acre (or per hectare) and approximate water volume.
-                - Clearly mention:
-                  • how many times to spray
-                  • gap between sprays (in days)
-                  • waiting period before harvest, if needed.
-                - Clearly list ALL tools and materials needed:
-                  • type of sprayer
-                  • nozzle type
-                  • measuring cup/spoon
-                  • protective clothing (gloves, mask, etc.)
-                  • any other tools.
-                - Fill EVERY section completely.
+                    Write a VERY detailed, step-by-step farm advisory report in a simple way for farmers to understand in {st.session_state.selected_language}.
 
-                Disease: {st.session_state.get('predicted_class')}
+                    STRICT RULES (must follow all):
+                    - Never skip information or stay vague.
+                    - Always give specific names of fungicides/pesticides (generic name + 1–2 common brand examples if possible).
+                    - ALWAYS give exact dose in:
+                      • ml or g per litre of water
+                      • ml or g per 15 L knapsack sprayer
+                      • total quantity per acre (or per hectare) and approximate water volume.
+                    - Clearly mention:
+                      • how many times to spray
+                      • gap between sprays (in days)
+                      • waiting period before harvest, if needed.
+                    - Clearly list ALL tools and materials needed:
+                      • type of sprayer
+                      • nozzle type
+                      • measuring cup/spoon
+                      • protective clothing (gloves, mask, etc.)
+                      • any other tools.
+                    - Use only safe, commonly used agricultural practices. Do NOT suggest anything illegal or extremely dangerous.
+                    - If you are not fully sure of an exact product name, give a best-practice generic recommendation (for example: “systemic fungicide from triazole group such as …”) instead of writing “depends” or “consult expert”.
+                    - Fill EVERY section completely. Do NOT leave any bullet empty.
 
-                Conditions:
-                Temperature: {fetch_sensor_data()['temperature']}
-                Humidity: {fetch_sensor_data()['humidity']}
-                Soil Moisture: {fetch_sensor_data()['soil_moisture']}
-                """
+                    Use THIS EXACT FORMAT and fill each point with detailed, practical, farmer-friendly instructions:
 
-                url = "https://api.groq.com/openai/v1/chat/completions"
-                headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+                    - Disease Name:
+                    - What It Means:
+                    - Cause:
+                    - Name of spray to be used & Amount to be sprayed:
+                    - Tools and Materials Needed (with quantities):
+                    - Step By Step Process For Treatment (with exact measurements and timing):
+                    - How many times to spray & gap between sprays:
+                    - Safety Precautions for Farmers:
+                    - Prevention Tips:
 
-                data = {
-                    "model": "meta-llama/llama-4-scout-17b-16e-instruct",
-                    "messages": [
-                        {"role": "system", "content": "You give farm advice."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    "temperature": 0.6,
-                    "max_completion_tokens": 800,
-                    "top_p": 1,
-                    "stream": False
-                }
 
-                try:
+                    Disease: {st.session_state.get('predicted_class')}
+                    
+                    Conditions:
+                    Temperature: {sensor['temperature']}
+                    Humidity: {sensor['humidity']}
+                    Soil Moisture: {sensor['soil_moisture']}
+                    """
+
+                    url = "https://api.groq.com/openai/v1/chat/completions"
+
+                    headers = {
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json"
+                    }
+
+                    data = {
+                        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                        "messages": [
+                            {"role": "system", "content": "You give farm advice."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        "temperature": 0.6,
+                        "max_completion_tokens": 800,
+                        "top_p": 1,
+                        "stream": False
+                    }
+
                     r = requests.post(url, headers=headers, json=data, timeout=40)
                     r.raise_for_status()
                     result = r.json()
                     st.session_state.report_text = result["choices"][0]["message"]["content"]
                     st.success("Report generated!")
 
-                except Exception as e:
-                    st.error(f"Error: {e}")
+            except requests.exceptions.HTTPError as http_err:
+                st.error(f"HTTP Error: {http_err}")
+            except Exception as e:
+                st.error(f"Error: {e}")
+            finally:
+                # resume auto-refresh after we finish
+                st.session_state.auto_refresh_on = True
 
 # ==========================
 # SHOW REPORT (TXT + DOCX)
@@ -389,7 +418,7 @@ if st.session_state.report_text:
         )
 
     except:
-        st.warning("DOCX export not available.")
+        st.warning("DOCX export not available. Please install python-docx in requirements.txt.")
 
 # ==========================
 # FOOTER
