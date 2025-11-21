@@ -24,8 +24,7 @@ def disable_augmentation_layers(model):
 
     def walk(layer):
         lname = getattr(layer, "name", "").lower()
-        # FIX: correct way to get class name
-        cname = layer.__class__.__name__.lower()
+        cname = layer.__class__.__name__.lower()  # FIXED
 
         if ("augmentation" in lname) or any(k in cname for k in ["random", "flip", "rotate", "rotation", "zoom", "contrast", "crop"]):
             try:
@@ -40,10 +39,6 @@ def disable_augmentation_layers(model):
                 walk(sub)
 
     walk(model)
-    if disabled:
-        print("Disabled augmentation-like layers:", disabled)
-    else:
-        print("No augmentation-like layers found to disable.")
     return model
 
 # ==========================
@@ -134,9 +129,12 @@ except Exception as e:
     model = None
     CLASS_NAMES = []
 
-# SESSION STATE
+# SESSION STATE INIT
 if "report_text" not in st.session_state:
     st.session_state.report_text = ""
+
+if "selected_language" not in st.session_state:
+    st.session_state.selected_language = "English"
 
 # ==========================
 # SENSOR DATA
@@ -156,7 +154,6 @@ def fetch_sensor_data():
             }
     except:
         pass
-
     return {"temperature": None, "humidity": None, "soil_moisture": None, "timestamp": None}
 
 # ==========================
@@ -187,7 +184,9 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### Settings")
 
 selected_language_display = st.sidebar.selectbox("Report language", list(LANGUAGE_OPTIONS.keys()))
-selected_language = LANGUAGE_OPTIONS[selected_language_display]
+
+# FIX — language persistence
+st.session_state.selected_language = LANGUAGE_OPTIONS[selected_language_display]
 
 api_key = st.sidebar.text_input("🔐 Groq API key", type="password")
 
@@ -231,7 +230,7 @@ elif page == "AI Detection Panel":
         if model:
             img = image.resize((224, 224))
             arr = tf.keras.preprocessing.image.img_to_array(img)
-            arr = np.expand_dims(arr, axis=0)   # do not preprocess again if model already has preprocessing
+            arr = np.expand_dims(arr, axis=0)
 
             preds = model.predict(arr)
 
@@ -242,21 +241,26 @@ elif page == "AI Detection Panel":
             st.success(f"🌿 Detected: {predicted_class}")
 
     # ==========================
-    # SENSOR DATA
+    # SENSOR DATA (SAFE REFRESH)
     # ==========================
     st.header("Step 2 — Live Farm Data")
-    
 
-    sensor = fetch_sensor_data()
+    sensor_placeholder = st.empty()
 
-    if sensor["temperature"] is not None:
-        c1, c2, c3 = st.columns(3)
-        c1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
-        c2.metric("💧 Humidity", f"{sensor['humidity']} %")
-        c3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
-        st.caption(f"Last updated: {sensor['timestamp']}")
-    else:
-        st.warning("Waiting for live data...")
+    def update_sensor():
+        sensor = fetch_sensor_data()
+        with sensor_placeholder:
+            if sensor["temperature"] is not None:
+                c1, c2, c3 = st.columns(3)
+                c1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
+                c2.metric("💧 Humidity", f"{sensor['humidity']} %")
+                c3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
+                st.caption(f"Last updated: {sensor['timestamp']}")
+            else:
+                st.warning("Waiting for live data...")
+
+    update_sensor()
+    st_autorefresh(interval=5000, key="sensor_refresh")  # SAFE — only refreshes sensor block
 
     # ==========================
     # AI REPORT GENERATION
@@ -266,19 +270,22 @@ elif page == "AI Detection Panel":
 
     if st.button("🧾 Generate Farm Report"):
         st.session_state.report_text = ""
+
         if not api_key:
             st.error("Please enter your Groq API key.")
         elif not uploaded_file:
             st.error("Please upload or capture an image.")
         elif model is None:
             st.error("Model not loaded.")
+        elif "predicted_class" not in st.session_state:
+            st.error("No disease prediction available.")
         else:
             with st.spinner("Writing report..."):
 
                 prompt = f"""
                 You are a helpful agricultural assistant for farmers.
 
-                Write a VERY detailed, step-by-step farm advisory report in a simple way for farmers to understand in {selected_language}.
+                Write a VERY detailed, step-by-step farm advisory report in a simple way for farmers to understand in {st.session_state.selected_language}.
 
                 STRICT RULES (must follow all):
                 - Never skip information or stay vague.
@@ -297,37 +304,18 @@ elif page == "AI Detection Panel":
                   • measuring cup/spoon
                   • protective clothing (gloves, mask, etc.)
                   • any other tools.
-                - Use only safe, commonly used agricultural practices. Do NOT suggest anything illegal or extremely dangerous.
-                - If you are not fully sure of an exact product name, give a best-practice generic recommendation (for example: “systemic fungicide from triazole group such as …”) instead of writing “depends” or “consult expert”.
-                - Fill EVERY section completely. Do NOT leave any bullet empty.
-
-                Use THIS EXACT FORMAT and fill each point with detailed, practical, farmer-friendly instructions:
-
-                - Disease Name:
-                - What It Means:
-                - Cause:
-                - Name of spray to be used & Amount to be sprayed:
-                - Tools and Materials Needed (with quantities):
-                - Step By Step Process For Treatment (with exact measurements and timing):
-                - How many times to spray & gap between sprays:
-                - Safety Precautions for Farmers:
-                - Prevention Tips:
-
+                - Fill EVERY section completely.
 
                 Disease: {st.session_state.get('predicted_class')}
-                
+
                 Conditions:
-                Temperature: {sensor['temperature']}
-                Humidity: {sensor['humidity']}
-                Soil Moisture: {sensor['soil_moisture']}
+                Temperature: {fetch_sensor_data()['temperature']}
+                Humidity: {fetch_sensor_data()['humidity']}
+                Soil Moisture: {fetch_sensor_data()['soil_moisture']}
                 """
 
                 url = "https://api.groq.com/openai/v1/chat/completions"
-
-                headers = {
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json"
-                }
+                headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
                 data = {
                     "model": "meta-llama/llama-4-scout-17b-16e-instruct",
@@ -348,8 +336,6 @@ elif page == "AI Detection Panel":
                     st.session_state.report_text = result["choices"][0]["message"]["content"]
                     st.success("Report generated!")
 
-                except requests.exceptions.HTTPError as http_err:
-                    st.error(f"HTTP Error: {http_err}")
                 except Exception as e:
                     st.error(f"Error: {e}")
 
@@ -384,7 +370,6 @@ if st.session_state.report_text:
             for run in p.runs:
                 run.font.size = Pt(12)
 
-        # uploaded_file exists when report is generated in AI Detection Panel
         if 'uploaded_file' in locals() and uploaded_file:
             img_bytes = uploaded_file.getbuffer()
             image_stream = BytesIO(img_bytes)
@@ -404,11 +389,10 @@ if st.session_state.report_text:
         )
 
     except:
-        st.warning("DOCX export not available. Please install python-docx in requirements.txt.")
+        st.warning("DOCX export not available.")
 
 # ==========================
 # FOOTER
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
-
