@@ -233,11 +233,11 @@ elif page == "AI Detection Panel":
             arr = np.expand_dims(arr, axis=0)   # ✔ FIX: DO NOT preprocess again
 
             preds = model.predict(arr)
-            confidence = np.max(preds)
+        
             predicted_class = CLASS_NAMES[np.argmax(preds)]
 
             st.session_state.predicted_class = predicted_class
-            st.session_state.confidence = confidence
+            
 
             st.success(f"🌿 Detected: {predicted_class} — {confidence*100:.2f}%")
 
@@ -276,17 +276,46 @@ elif page == "AI Detection Panel":
             with st.spinner("Writing report..."):
 
                 prompt = f"""
-                You are a helpful agricultural assistant.
-                Write the report in a simple way for farmers to understand in {selected_language}.
-                Use this format:
+                You are a helpful agricultural assistant for farmers.
+
+                Write a VERY detailed, step-by-step farm advisory report in a simple way for farmers to understand in {selected_language}.
+
+                STRICT RULES (must follow all):
+                - Never skip information or stay vague.
+                - Always give specific names of fungicides/pesticides (generic name + 1–2 common brand examples if possible).
+                - ALWAYS give exact dose in:
+                  • ml or g per litre of water
+                  • ml or g per 15 L knapsack sprayer
+                  • total quantity per acre (or per hectare) and approximate water volume.
+                - Clearly mention:
+                  • how many times to spray
+                  • gap between sprays (in days)
+                  • waiting period before harvest, if needed.
+                - Clearly list ALL tools and materials needed:
+                  • type of sprayer
+                  • nozzle type
+                  • measuring cup/spoon
+                  • protective clothing (gloves, mask, etc.)
+                  • any other tools.
+                - Use only safe, commonly used agricultural practices. Do NOT suggest anything illegal or extremely dangerous.
+                - If you are not fully sure of an exact product name, give a best-practice generic recommendation (for example: “systemic fungicide from triazole group such as …”) instead of writing “depends” or “consult expert”.
+                - Fill EVERY section completely. Do NOT leave any bullet empty.
+
+                Use THIS EXACT FORMAT and fill each point with detailed, practical, farmer-friendly instructions:
+
                 - Disease Name:
                 - What It Means:
-                - What You Should Do:
+                - Cause:
+                - Name of spray to be used & Amount to be sprayed:
+                - Tools and Materials Needed (with quantities):
+                - Step By Step Process For Treatment (with exact measurements and timing):
+                - How many times to spray & gap between sprays:
+                - Safety Precautions for Farmers:
                 - Prevention Tips:
 
-                Disease: {st.session_state.get('predicted_class')}
-                Confidence: {st.session_state.get('confidence')*100:.2f}%
 
+                Disease: {st.session_state.get('predicted_class')}
+                
                 Conditions:
                 Temperature: {sensor['temperature']}
                 Humidity: {sensor['humidity']}
@@ -381,3 +410,4 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
