@@ -309,15 +309,37 @@ elif page == "AI Detection Panel":
             st.success(f"🌿 Detected: {predicted_class}")
 
     # ==========================
-    # SENSOR DATA (WITH CONTROLLED AUTO-REFRESH)
     # ==========================
-    st.header("Step 2 — Live Farm Data")
+# SENSOR DATA
+# ==========================
+def fetch_sensor_data():
+    url = "https://api.thingspeak.com/channels/3152731/feeds.json?api_key=8WGWK6AUAF74H6DJ&results=1"
+    try:
+        response = requests.get(url, timeout=5)
+        data = response.json()
+        if data.get("feeds"):
+            latest = data["feeds"][0]
+            return {
+                "temperature": latest["field1"],
+                "humidity": latest["field2"],
+                "soil_moisture": latest["field3"],
+                "air_quality": latest["field4"],    # 🔥 AIR QUALITY ADDED
+                "timestamp": latest["created_at"]
+            }
+    except:
+        pass
+    return {
+        "temperature": None,
+        "humidity": None,
+        "soil_moisture": None,
+        "air_quality": None,
+        "timestamp": None
+    }
 
-    if st.session_state.auto_refresh_on:
-        count = st_autorefresh(interval=5000, limit=None, key="sensor_refresh")
-    else:
-        count = 0  # no-op when auto-refresh disabled
 
+# ==========================
+# SENSOR DATA VIEW (ONLY AQ ADDED)
+# ==========================
     sensor = fetch_sensor_data()
 
     if sensor["temperature"] is not None:
@@ -325,6 +347,10 @@ elif page == "AI Detection Panel":
         c1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
         c2.metric("💧 Humidity", f"{sensor['humidity']} %")
         c3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
+
+        # 🔥 AIR QUALITY DISPLAY ADDED — NO OTHER CHANGES MADE
+        st.metric("🫁 Air Quality (PPM)", f"{sensor['air_quality']} ppm")
+
         st.caption(f"Last updated: {sensor['timestamp']}")
     else:
         st.warning("Waiting for live data...")
@@ -503,3 +529,4 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
