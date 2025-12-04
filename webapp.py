@@ -318,22 +318,33 @@ elif page == "AI Detection Panel":
             st.success(f"🌿 Detected: {predicted_class}")
 
     # ==========================
-    # SENSOR DATA VIEW (ONLY AQ ADDED)
-# ==========================
+    #=======SENSOR DATA=======
     sensor = fetch_sensor_data()
 
-    if sensor["temperature"] is not None:
-        c1, c2, c3 = st.columns(3)
-        c1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
-        c2.metric("💧 Humidity", f"{sensor['humidity']} %")
-        c3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
+if any([sensor["temperature"], sensor["humidity"], sensor["soil_moisture"], sensor["air_quality"]]):
+    cols = st.columns(4)
+    col_idx = 0
 
-        # 🔥 AIR QUALITY DISPLAY ADDED — NO OTHER CHANGES MADE
-        st.metric("🫁 Air Quality (PPM)", f"{sensor['air_quality']} ppm")
+    # Show only values that exist
+    if sensor["temperature"]:
+        cols[col_idx].metric("🌡 Temperature", f"{sensor['temperature']} °C")
+        col_idx += 1
+    
+    if sensor["humidity"]:
+        cols[col_idx].metric("💧 Humidity", f"{sensor['humidity']} %")
+        col_idx += 1
 
-        st.caption(f"Last updated: {sensor['timestamp']}")
-    else:
-        st.warning("Waiting for live data...")
+    if sensor["soil_moisture"]:
+        cols[col_idx].metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
+        col_idx += 1
+
+    if sensor["air_quality"]:
+        cols[col_idx].metric("🫁 Air Quality (PPM)", f"{sensor['air_quality']} ppm")
+        col_idx += 1
+
+    st.caption(f"Last updated: {sensor['timestamp']}")
+else:
+    st.warning("Waiting for live data...")
 
     # ==========================
     # AI REPORT GENERATION
@@ -509,3 +520,4 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
