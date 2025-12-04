@@ -122,7 +122,17 @@ def load_model():
 
 try:
     model=load_model()
-    CLASS_NAMES=[... same list ...]
+    CLASS_NAMES= [
+        'CURRY POWDERY MILDEW', 'HEALTHY MILLET', 'HEALTHY POTATO', 'HEALTHY RICE',
+        'HEALTHY SUGARCANE', 'HEALTHY TEA LEAF', 'HEALTHY TOMATO', 'HEALTHY WHEAT',
+        'MILLETS BLAST', 'MILLETS RUST', 'POTATO EARLY BLIGHT', 'POTATO LATE BLIGHT',
+        'RICE BACTERIAL BLIGHT', 'RICE BROWN SPOT', 'RICE LEAF SMUT', 'SUGARCANE RED ROT',
+        'SUGARCANE RUST', 'SUGARCANE YELLOW', 'TEA GRAY BLIGHT', 'TEA GREEN MIRID BUG',
+        'TEA HELOPELTIS', 'TOMATO LEAF MOLD', 'TOMATO MOSAIC VIRUS',
+        'TOMATO SEPTORIA LEAF SPOT', 'WHEAT BROWN RUST', 'WHEAT LOOSE SMUT',
+        'WHEAT YELLOW RUST'
+    ]
+
 except:
     st.error("Model failed to load.")
     model=None
@@ -392,4 +402,5 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc ©2025 — Helping Farmers Grow Smarter</div>",unsafe_allow_html=True)
+
 
