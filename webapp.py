@@ -321,7 +321,7 @@ elif page == "AI Detection Panel":
 
     # ==========================
     #=======SENSOR DATA=======
-    sensor = fetch_sensor_data()
+sensor = fetch_sensor_data()
 
 values = {
     "🌡 Temperature (°C)": sensor["temperature"],
@@ -517,5 +517,6 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
 
