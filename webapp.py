@@ -207,33 +207,22 @@ if "auto_refresh_on" not in st.session_state:
 # ==========================
 # SENSOR DATA
 # ==========================
-# SENSOR DATA
-# ==========================
 def fetch_sensor_data():
-    url = "https://api.thingspeak.com/channels/3152731/feeds.json?results=1"
+    url = "https://api.thingspeak.com/channels/3152731/feeds.json?api_key=8WGWK6AUAF74H6DJ&results=1"
     try:
         response = requests.get(url, timeout=5)
         data = response.json()
         if data.get("feeds"):
             latest = data["feeds"][0]
             return {
-                "temperature": latest.get("field1"),
-                "humidity": latest.get("field2"),
-                "soil_moisture": latest.get("field3"),
-                "air_quality": latest.get("field4"),
-                "timestamp": latest.get("created_at")
+                "temperature": latest["field1"],
+                "humidity": latest["field2"],
+                "soil_moisture": latest["field3"],
+                "timestamp": latest["created_at"]
             }
-    except Exception:
+    except:
         pass
-    
-    return {
-        "temperature": None,
-        "humidity": None,
-        "soil_moisture": None,
-        "air_quality": None,
-        "timestamp": None
-    }
-
+    return {"temperature": None, "humidity": None, "soil_moisture": None, "timestamp": None}
 
 # ==========================
 # MULTI-LANGUAGE OPTIONS
@@ -320,28 +309,25 @@ elif page == "AI Detection Panel":
             st.success(f"🌿 Detected: {predicted_class}")
 
     # ==========================
-    #=======SENSOR DATA=======
-sensor = fetch_sensor_data()
+    # SENSOR DATA (WITH CONTROLLED AUTO-REFRESH)
+    # ==========================
+    st.header("Step 2 — Live Farm Data")
 
-values = {
-    "🌡 Temperature (°C)": sensor["temperature"],
-    "💧 Humidity (%)": sensor["humidity"],
-    "🌱 Soil Moisture (%)": sensor["soil_moisture"],
-    "🫁 Air Quality (PPM)": sensor["air_quality"]
-}
+    if st.session_state.auto_refresh_on:
+        count = st_autorefresh(interval=5000, limit=None, key="sensor_refresh")
+    else:
+        count = 0  # no-op when auto-refresh disabled
 
-# FILTER OUT EMPTY VALUES
-active = {name:value for name,value in values.items() if value not in [None, ""]}
+    sensor = fetch_sensor_data()
 
-if active:
-    cols = st.columns(len(active))
-    for (i,(name,value)) in enumerate(active.items()):
-        cols[i].metric(name, value)
-    
-    st.caption(f"Last updated: {sensor['timestamp']}")
-else:
-    st.warning("Waiting for live data...")
-
+    if sensor["temperature"] is not None:
+        c1, c2, c3 = st.columns(3)
+        c1.metric("🌡 Temperature", f"{sensor['temperature']} °C")
+        c2.metric("💧 Humidity", f"{sensor['humidity']} %")
+        c3.metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
+        st.caption(f"Last updated: {sensor['timestamp']}")
+    else:
+        st.warning("Waiting for live data...")
 
     # ==========================
     # AI REPORT GENERATION
@@ -517,6 +503,3 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
-
-
-
