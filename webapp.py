@@ -210,21 +210,22 @@ if "auto_refresh_on" not in st.session_state:
 # SENSOR DATA
 # ==========================
 def fetch_sensor_data():
-    url = "https://api.thingspeak.com/channels/3152731/feeds.json?api_key=8WGWK6AUAF74H6DJ&results=1"
+    url = "https://api.thingspeak.com/channels/3152731/feeds.json?results=1"
     try:
         response = requests.get(url, timeout=5)
         data = response.json()
         if data.get("feeds"):
             latest = data["feeds"][0]
             return {
-                "temperature": latest["field1"],
-                "humidity": latest["field2"],
-                "soil_moisture": latest["field3"],
-                "air_quality": latest["field4"],    # 🔥 AIR QUALITY ADDED
-                "timestamp": latest["created_at"]
+                "temperature": latest.get("field1"),
+                "humidity": latest.get("field2"),
+                "soil_moisture": latest.get("field3"),
+                "air_quality": latest.get("field4"),
+                "timestamp": latest.get("created_at")
             }
-    except:
+    except Exception:
         pass
+    
     return {
         "temperature": None,
         "humidity": None,
@@ -232,6 +233,7 @@ def fetch_sensor_data():
         "air_quality": None,
         "timestamp": None
     }
+
 
 # ==========================
 # MULTI-LANGUAGE OPTIONS
@@ -321,30 +323,25 @@ elif page == "AI Detection Panel":
     #=======SENSOR DATA=======
     sensor = fetch_sensor_data()
 
-if any([sensor["temperature"], sensor["humidity"], sensor["soil_moisture"], sensor["air_quality"]]):
-    cols = st.columns(4)
-    col_idx = 0
+values = {
+    "🌡 Temperature (°C)": sensor["temperature"],
+    "💧 Humidity (%)": sensor["humidity"],
+    "🌱 Soil Moisture (%)": sensor["soil_moisture"],
+    "🫁 Air Quality (PPM)": sensor["air_quality"]
+}
 
-    # Show only values that exist
-    if sensor["temperature"]:
-        cols[col_idx].metric("🌡 Temperature", f"{sensor['temperature']} °C")
-        col_idx += 1
+# FILTER OUT EMPTY VALUES
+active = {name:value for name,value in values.items() if value not in [None, ""]}
+
+if active:
+    cols = st.columns(len(active))
+    for (i,(name,value)) in enumerate(active.items()):
+        cols[i].metric(name, value)
     
-    if sensor["humidity"]:
-        cols[col_idx].metric("💧 Humidity", f"{sensor['humidity']} %")
-        col_idx += 1
-
-    if sensor["soil_moisture"]:
-        cols[col_idx].metric("🌱 Soil Moisture", f"{sensor['soil_moisture']} %")
-        col_idx += 1
-
-    if sensor["air_quality"]:
-        cols[col_idx].metric("🫁 Air Quality (PPM)", f"{sensor['air_quality']} ppm")
-        col_idx += 1
-
     st.caption(f"Last updated: {sensor['timestamp']}")
 else:
     st.warning("Waiting for live data...")
+
 
     # ==========================
     # AI REPORT GENERATION
@@ -520,4 +517,5 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>", unsafe_allow_html=True)
+
 
