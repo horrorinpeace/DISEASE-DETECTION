@@ -32,10 +32,9 @@ LANG_CODE_MAP = {
 }
 
 def translate_with_google(text, target_language_name):
-    """Translate English text to target_language using Google Translate unofficial endpoint."""
     code = LANG_CODE_MAP.get(target_language_name, "en")
     if code == "en":
-        return text  # no need to translate to English
+        return text
 
     try:
         url = "https://translate.googleapis.com/translate_a/single"
@@ -54,8 +53,8 @@ def translate_with_google(text, target_language_name):
     except Exception:
         return text
 
+
 def is_mostly_english(text: str) -> bool:
-    """Heuristic: checks if text is mostly ASCII letters (English-like)."""
     if not text:
         return False
     total_letters = sum(c.isalpha() for c in text)
@@ -64,8 +63,9 @@ def is_mostly_english(text: str) -> bool:
     ascii_letters = sum(c.isascii() and c.isalpha() for c in text)
     return (ascii_letters / total_letters) > 0.85
 
+
 # ==========================
-# ROBUST: disable augmentation inside model (recursive + bound method)
+# ROBUST: disable augmentation inside model
 # ==========================
 def disable_augmentation_layers(model):
     disabled = []
@@ -75,8 +75,7 @@ def disable_augmentation_layers(model):
 
     def walk(layer):
         lname = getattr(layer, "name", "").lower()
-        cname = layer._class.name_.lower()  # FIXED
-
+        cname = layer._class.name_.lower()
         if ("augmentation" in lname) or any(
             k in cname for k in ["random", "flip", "rotate", "rotation", "zoom", "contrast", "crop"]
         ):
@@ -94,6 +93,7 @@ def disable_augmentation_layers(model):
     walk(model)
     return model
 
+
 # ==========================
 # PAGE CONFIG
 # ==========================
@@ -102,6 +102,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
 
 # ==========================
 # APP-WIDE STYLES
@@ -141,6 +142,7 @@ def set_background_and_styles():
 
 set_background_and_styles()
 
+
 # ==========================
 # PAGE HEADER
 # ==========================
@@ -150,6 +152,7 @@ with header_col1:
     st.markdown("<div class='caption'>Detect plant disease, view live farm sensor data, and get an easy-to-follow treatment report in multiple languages.</div>",unsafe_allow_html=True)
 
 st.markdown("---")
+
 
 # ==========================
 # LOAD MODEL
@@ -181,12 +184,14 @@ except:
     model=None
     CLASS_NAMES=[]
 
+
 if "report_text" not in st.session_state: st.session_state.report_text=""
 if "selected_language" not in st.session_state: st.session_state.selected_language="English"
 if "auto_refresh_on" not in st.session_state: st.session_state.auto_refresh_on=True
 
+
 # ==========================
-# SENSOR DATA  🔥  (LIGHT ADDED FIELD 5)
+# SENSOR DATA (PRESSURE ADDED FIELD 6)
 # ==========================
 def fetch_sensor_data():
     url = "https://api.thingspeak.com/channels/3152731/feeds.json?api_key=8WGWK6AUAF74H6DJ&results=1"
@@ -200,20 +205,23 @@ def fetch_sensor_data():
                 "humidity": latest.get("field2"),
                 "soil_moisture": latest.get("field3"),
                 "air_quality": latest.get("field4"),
-                "light_intensity": latest.get("field5"),      #  ← ADDED FIELD 5
+                "light_intensity": latest.get("field5"),
+                "pressure": latest.get("field6"),     # ← ADDED FIELD 6
                 "timestamp": latest.get("created_at")
             }
     except:
         pass
-    return {"temperature":None,"humidity":None,"soil_moisture":None,"air_quality":None,"light_intensity":None,"timestamp":None}
+    return {"temperature":None,"humidity":None,"soil_moisture":None,"air_quality":None,"light_intensity":None,"pressure":None,"timestamp":None}
+
 
 # ==========================
 LANGUAGE_OPTIONS={
- "English":"English","हिन्दी (Hindi)":"Hindi","বাংলা (Bengali)":"Bengali","தமிழ் (Tamil)":"Tamil",
- "తెలుగు (Telugu)":"Telugu","ಕನ್ನಡ (Kannada)":"Kannada","മലയാളം (Malayalam)":"Malayalam",
- "मराठी (Marathi)":"Marathi","ગુજરાતી (Gujarati)":"Gujarati","ਪੰਜਾਬੀ (Punjabi)":"Punjabi",
- "ଓଡ଼ିଆ (Odia)":"Odia","اردو (Urdu)":"Urdu"
+  "English":"English","हिन्दी (Hindi)":"Hindi","বাংলা (Bengali)":"Bengali","தமிழ் (Tamil)":"Tamil",
+  "తెలుగు (Telugu)":"Telugu","ಕನ್ನಡ (Kannada)":"Kannada","മലയാളം (Malayalam)":"Malayalam",
+  "मराठी (Marathi)":"Marathi","ગુજરાતી (Gujarati)":"Gujarati","ਪੰਜਾਬੀ (Punjabi)":"Punjabi",
+  "ଓଡ଼ିଆ (Odia)":"Odia","اردو (Urdu)":"Urdu"
 }
+
 
 # ==========================
 # SIDEBAR MENU
@@ -225,6 +233,7 @@ st.sidebar.markdown("### Settings")
 selected_language_display=st.sidebar.selectbox("Report language",list(LANGUAGE_OPTIONS.keys()))
 st.session_state.selected_language=LANGUAGE_OPTIONS[selected_language_display]
 api_key=st.sidebar.text_input("🔐 Groq API key",type="password")
+
 
 # ==========================
 # ABOUT
@@ -240,11 +249,12 @@ if page=="About":
 
     st.markdown("### How it works")
     st.markdown("""
-    1. Take a photo of the leaf or upload an image.  
-    2. The AI predicts likely disease.  
-    3. You generate the report.  
-    4. Download it and share.  
+    1. Take a photo of the leaf or upload an image.
+    2. The AI recommends the most likely disease.
+    3. You generate the report.
+    4. Download it and share.
     """)
+
 
 # ==========================
 # AI PANEL
@@ -271,8 +281,9 @@ elif page=="AI Detection Panel":
             st.session_state.predicted_class=predicted_class
             st.success(f"🌿 Detected: {predicted_class}")
 
+
     # ==========================
-    # LIVE SENSOR DATA  (LIGHT INCLUDED)
+    # LIVE FARM DATA (PRESSURE INCLUDED)
     # ==========================
     st.header("Step 2 — Live Farm Data")
     if st.session_state.auto_refresh_on:
@@ -280,15 +291,18 @@ elif page=="AI Detection Panel":
 
     sensor=fetch_sensor_data()
 
-    c1,c2,c3,c4,c5 = st.columns(5)   # updated column count
+    c1,c2,c3,c4,c5,c6 = st.columns(6)     # 6 COLUMNS NOW — NO OTHER CHANGE
 
     if sensor["temperature"]!=None:  c1.metric("🌡 Temperature",f"{sensor['temperature']} °C")
     if sensor["humidity"]!=None:     c2.metric("💧 Humidity",f"{sensor['humidity']} %")
     if sensor["soil_moisture"]!=None:c3.metric("🌱 Soil Moisture",f"{sensor['soil_moisture']} %")
     if sensor["air_quality"]!=None:  c4.metric("🫁 Air Quality",f"{sensor['air_quality']} AQI")
-    if sensor["light_intensity"]!=None:c5.metric("💡 Light Intensity",f"{sensor['light_intensity']} lx")  # ← ADDED
+    if sensor["light_intensity"]!=None:c5.metric("💡 Light Intensity",f"{sensor['light_intensity']} lx")
+
+    if sensor["pressure"]!=None:     c6.metric("🌬 Pressure",f"{sensor['pressure']} hPa")   # FIELD 6 DISPLAY HERE
 
     st.caption(f"Last updated: {sensor['timestamp']}")
+
 
     # ==========================
     # REPORT SECTION (UNCHANGED)
@@ -309,13 +323,13 @@ elif page=="AI Detection Panel":
                     prompt=f"""
                     You are a helpful agricultural assistant.
                     Write a detailed step-by-step farm advisory report in {st.session_state.selected_language}:
-
-                    Disease: {st.session_state.get('predicted_class')}
-                    Temperature: {sensor['temperature']}
-                    Humidity: {sensor['humidity']}
-                    Soil Moisture: {sensor['soil_moisture']}
-                    Air Quality: {sensor['air_quality']}
-                    Light Intensity: {sensor['light_intensity']}
+                     Disease: {st.session_state.get('predicted_class')}
+                     Temperature: {sensor['temperature']}
+                     Humidity: {sensor['humidity']}
+                     Soil Moisture: {sensor['soil_moisture']}
+                     Air Quality: {sensor['air_quality']}
+                     Light Intensity: {sensor['light_intensity']}
+                     Pressure: {sensor['pressure']}
                     """
 
                     url="https://api.groq.com/openai/v1/chat/completions"
@@ -335,9 +349,9 @@ elif page=="AI Detection Panel":
                         if translated:st.session_state.report_text=translated
 
                     st.success("Report generated!")
-
             except Exception as e: st.error(f"Error: {e}")
             finally:st.session_state.auto_refresh_on=True
+
 
 # ==========================
 # REPORT DISPLAY + DOWNLOAD
@@ -369,9 +383,9 @@ if st.session_state.report_text:
 
         f=BytesIO();doc.save(f);f.seek(0)
         st.download_button("📥 Download Farm Report (DOCX)",data=f.read(),file_name="farm_report.docx",mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-
     except:
         st.warning("DOCX export not available.")
+
 
 # ==========================
 # FOOTER
