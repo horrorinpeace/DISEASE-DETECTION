@@ -102,6 +102,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+if "report_text" not in st.session_state:
+    st.session_state.report_text = ""
+
 
 
 # ==========================
@@ -402,3 +405,4 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>",unsafe_allow_html=True)
+
