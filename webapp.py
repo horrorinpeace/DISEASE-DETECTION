@@ -65,6 +65,7 @@ def is_mostly_english(text: str) -> bool:
 
 
 # ==========================
+# ==========================
 # ROBUST: disable augmentation inside model
 # ==========================
 def disable_augmentation_layers(model):
@@ -75,23 +76,25 @@ def disable_augmentation_layers(model):
 
     def walk(layer):
         lname = getattr(layer, "name", "").lower()
-        cname = layer.class.name.lower()
+        cname = layer.__class__.__name__.lower()  # <-- FIXED
+
         if ("augmentation" in lname) or any(
-            k in cname for k in ["random", "flip", "rotate", "rotation", "zoom", "contrast", "crop"]
+            k in cname for k in ["random","flip","rotate","rotation","zoom","contrast","crop","augment","preprocess"]
         ):
             try:
                 layer.call = MethodType(identity_call, layer)
                 layer.trainable = False
                 disabled.append(layer.name)
-            except Exception:
+            except:
                 pass
 
-        if hasattr(layer, "layers") and layer.layers:
-            for sub in layer.layers:
-                walk(sub)
+        if hasattr(layer,"layers"):
+            for l in layer.layers:
+                walk(l)
 
     walk(model)
     return model
+
 
 
 # ==========================
@@ -411,3 +414,4 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>",unsafe_allow_html=True)
+
