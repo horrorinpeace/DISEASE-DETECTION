@@ -165,7 +165,6 @@ import streamlit as st
 MODEL_URL = "https://raw.githubusercontent.com/horrorinpeace/DISEASE-DETECTION/main/fix.h5"
 MODEL_PATH = "fix.h5"
 
-# ---- NEW FIXED VERSION ----
 def disable_augmentation_layers(model):
     for layer in model.layers:
         lname = layer.__class__.__name__.lower()
@@ -180,7 +179,7 @@ def load_model():
         urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
 
     m = tf.keras.models.load_model(MODEL_PATH, compile=False)
-    m = disable_augmentation_layers(m)   # now safe and compatible
+    m = disable_augmentation_layers(m)
     return m
 
 try:
@@ -200,7 +199,7 @@ except Exception as e:
     CLASS_NAMES=[]
 
 # ==========================
-# SENSOR DATA (PRESSURE ADDED FIELD 6)
+# SENSOR DATA (PRESSURE + SOIL TEMP ADDED)
 # ==========================
 def fetch_sensor_data():
     url = "https://api.thingspeak.com/channels/3152731/feeds.json?api_key=8WGWK6AUAF74H6DJ&results=1"
@@ -215,12 +214,13 @@ def fetch_sensor_data():
                 "soil_moisture": latest.get("field3"),
                 "air_quality": latest.get("field4"),
                 "light_intensity": latest.get("field5"),
-                "pressure": latest.get("field6"),     # ← ADDED FIELD 6
+                "pressure": latest.get("field6"),
+                "soil_temperature": latest.get("field7"),  # ★ ADDED FIELD 7 SOIL TEMP
                 "timestamp": latest.get("created_at")
             }
     except:
         pass
-    return {"temperature":None,"humidity":None,"soil_moisture":None,"air_quality":None,"light_intensity":None,"pressure":None,"timestamp":None}
+    return {"temperature":None,"humidity":None,"soil_moisture":None,"air_quality":None,"light_intensity":None,"pressure":None,"soil_temperature":None,"timestamp":None}
 
 
 # ==========================
@@ -292,7 +292,7 @@ elif page=="AI Detection Panel":
 
 
     # ==========================
-    # LIVE FARM DATA (PRESSURE INCLUDED)
+    # LIVE FARM DATA (PRESSURE + SOIL TEMP INCLUDED)
     # ==========================
     st.header("Step 2 — Live Farm Data")
     if st.session_state.auto_refresh_on:
@@ -300,21 +300,21 @@ elif page=="AI Detection Panel":
 
     sensor=fetch_sensor_data()
 
-    c1,c2,c3,c4,c5,c6 = st.columns(6)     # 6 COLUMNS NOW — NO OTHER CHANGE
+    c1,c2,c3,c4,c5,c6,c7 = st.columns(7)  # ★ ADDED 7th column
 
     if sensor["temperature"]!=None:  c1.metric("🌡 Temperature",f"{sensor['temperature']} °C")
     if sensor["humidity"]!=None:     c2.metric("💧 Humidity",f"{sensor['humidity']} %")
     if sensor["soil_moisture"]!=None:c3.metric("🌱 Soil Moisture",f"{sensor['soil_moisture']} %")
     if sensor["air_quality"]!=None:  c4.metric("🫁 Air Quality",f"{sensor['air_quality']} AQI")
     if sensor["light_intensity"]!=None:c5.metric("💡 Light Intensity",f"{sensor['light_intensity']} lx")
+    if sensor["pressure"]!=None:     c6.metric("🌬 Pressure",f"{sensor['pressure']} hPa")
 
-    if sensor["pressure"]!=None:     c6.metric("🌬 Pressure",f"{sensor['pressure']} hPa")   # FIELD 6 DISPLAY HERE
+    if sensor["soil_temperature"]!=None: c7.metric("🌡 Soil Temp",f"{sensor['soil_temperature']} °C")  # ★ NEW DISPLAY
 
     st.caption(f"Last updated: {sensor['timestamp']}")
 
-
     # ==========================
-    # REPORT SECTION (UNCHANGED)
+    # REPORT GENERATION SECTION
     # ==========================
     st.header("Step 3 — Get Farm Report")
     st.markdown("<div class='card'>The AI will write the report in selected language.</div>",unsafe_allow_html=True)
@@ -339,6 +339,7 @@ elif page=="AI Detection Panel":
                      Air Quality: {sensor['air_quality']}
                      Light Intensity: {sensor['light_intensity']}
                      Pressure: {sensor['pressure']}
+                     Soil Temperature: {sensor['soil_temperature']}
                     """
 
                     url="https://api.groq.com/openai/v1/chat/completions"
@@ -401,5 +402,3 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>",unsafe_allow_html=True)
-
-
