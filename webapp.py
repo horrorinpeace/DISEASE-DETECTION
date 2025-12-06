@@ -218,18 +218,19 @@ def fetch_sensor_data():
         if data.get("feeds"):
             latest=data["feeds"][0]
             return {
-                "temperature": latest.get("field1"),
-                "humidity": latest.get("field2"),
-                "soil_moisture": latest.get("field3"),
-                "air_quality": latest.get("field4"),
-                "light_intensity": latest.get("field5"),
-                "pressure": latest.get("field6"),
-                "soil_temperature": latest.get("field7"),  # ★ ADDED FIELD 7 SOIL TEMP
+                "temperature": latest.get("field1") or "0",
+                "humidity": latest.get("field2") or "0",
+                "soil_moisture": latest.get("field3") or "0",
+                "air_quality": latest.get("field4") or "0",
+                "light_intensity": latest.get("field5") or "0",
+                "pressure": latest.get("field6") or "0",
+                "soil_temperature": latest.get("field7") or "0",  # ★ ADDED FIELD 7 SOIL TEMP
                 "timestamp": latest.get("created_at")
             }
     except:
         pass
     return {"temperature":None,"humidity":None,"soil_moisture":None,"air_quality":None,"light_intensity":None,"pressure":None,"soil_temperature":None,"timestamp":None}
+
 
 
 # ==========================
@@ -411,5 +412,6 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>",unsafe_allow_html=True)
+
 
 
