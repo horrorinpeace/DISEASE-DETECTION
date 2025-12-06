@@ -122,27 +122,50 @@ try:
 except Exception as e: st.error(f"Model failed to load: {e}"); model=None; CLASS_NAMES=[]
 
 # ==========================
-# FIXED — Correct ThingSpeak Read Key
+# CORRECT READ KEY
 # ==========================
-READ_KEY = "SO5QAU5RBCQ15WKD"  # <<< YOUR READ KEY
+READ_KEY = "SO5QAU5RBCQ15WKD"
 
+# ==========================
+# FIXED → MERGE LATEST NON-NULL VALUES FROM MULTIPLE ROWS
+# ==========================
 def fetch_sensor_data():
-    url=f"https://api.thingspeak.com/channels/3152731/feeds.json?api_key={READ_KEY}&results=1"
+    # get last N rows so each ESP's latest update is included
+    url=f"https://api.thingspeak.com/channels/3152731/feeds.json?api_key={READ_KEY}&results=40"
     try:
         res=requests.get(url,timeout=5).json()
-        feed=res["feeds"][0] if res.get("feeds") else {}
+        feeds=res.get("feeds",[])
+
+        def latest(field):
+            # go from newest to oldest and return first non-null value
+            for row in reversed(feeds):
+                val=row.get(field)
+                if val not in (None,""):
+                    return val
+            return "None"
+
+        if not feeds:
+            timestamp="—"
+        else:
+            timestamp=feeds[-1].get("created_at","—")
+
         return {
-            "temperature":feed.get("field1","—"),
-            "humidity":feed.get("field2","—"),
-            "soil_moisture":feed.get("field3","—"),
-            "air_quality":feed.get("field4","—"),
-            "light_intensity":feed.get("field5","—"),
-            "pressure":feed.get("field6","—"),
-            "soil_temperature":feed.get("field7","—"),
-            "timestamp":feed.get("created_at","—")
+            "temperature":     latest("field1"),
+            "humidity":        latest("field2"),
+            "soil_moisture":   latest("field3"),
+            "air_quality":     latest("field4"),
+            "light_intensity": latest("field5"),
+            "pressure":        latest("field6"),
+            "soil_temperature":latest("field7"),
+            "timestamp":       timestamp
         }
     except:
-        return {"temperature":"—","humidity":"—","soil_moisture":"—","air_quality":"—","light_intensity":"—","pressure":"—","soil_temperature":"—","timestamp":"—"}
+        return {
+            "temperature":"None","humidity":"None","soil_moisture":"None",
+            "air_quality":"None","light_intensity":"None",
+            "pressure":"None","soil_temperature":"None",
+            "timestamp":"—"
+        }
 
 # ==========================
 LANGUAGE_OPTIONS={
