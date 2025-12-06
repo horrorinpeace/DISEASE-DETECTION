@@ -122,10 +122,12 @@ try:
 except Exception as e: st.error(f"Model failed to load: {e}"); model=None; CLASS_NAMES=[]
 
 # ==========================
-# FIXED → ALWAYS SHOW SENSOR VALUES
+# FIXED — Correct ThingSpeak Read Key
 # ==========================
+READ_KEY = "SO5QAU5RBCQ15WKD"  # <<< YOUR READ KEY
+
 def fetch_sensor_data():
-    url="https://api.thingspeak.com/channels/3152731/feeds.json?api_key=8WGWK6AUAF74H6DJ&results=1"
+    url=f"https://api.thingspeak.com/channels/3152731/feeds.json?api_key={READ_KEY}&results=1"
     try:
         res=requests.get(url,timeout=5).json()
         feed=res["feeds"][0] if res.get("feeds") else {}
@@ -206,7 +208,7 @@ elif page=="AI Detection Panel":
             st.success(f"🌿 Detected: {st.session_state.predicted_class}")
 
     # ==========================
-    # LIVE FARM VALUES — ALWAYS VISIBLE
+    # LIVE FARM VALUES
     # ==========================
     st.header("Step 2 — Live Farm Data")
     if st.session_state.auto_refresh_on:
