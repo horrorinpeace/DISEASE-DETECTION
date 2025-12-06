@@ -157,9 +157,12 @@ st.markdown("---")
 # ==========================
 # LOAD MODEL
 # ==========================
+# Force save to local folder for stable loading
 model_path = hf_hub_download(
     repo_id="qwertymaninwork/Plant_Disease_Detection_System",
-    filename="fix.h5"
+    filename="fix.h5",
+    local_dir="models",                     # <–– added
+    local_dir_use_symlinks=False            # <–– added
 )
 
 @st.cache_resource
@@ -179,16 +182,15 @@ try:
         'TEA HELOPELTIS','TOMATO LEAF MOLD','TOMATO MOSAIC VIRUS',
         'TOMATO SEPTORIA LEAF SPOT','WHEAT BROWN RUST','WHEAT LOOSE SMUT','WHEAT YELLOW RUST'
     ]
-except:
-    st.error("Model failed to load")
+except Exception as e:
+    st.error(f"Model failed to load: {e}")
     model=None
     CLASS_NAMES=[]
-
+    
 
 if "report_text" not in st.session_state: st.session_state.report_text=""
 if "selected_language" not in st.session_state: st.session_state.selected_language="English"
 if "auto_refresh_on" not in st.session_state: st.session_state.auto_refresh_on=True
-
 
 # ==========================
 # SENSOR DATA (PRESSURE ADDED FIELD 6)
