@@ -102,8 +102,14 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+# ==========================
+# PREVENT SESSION-STATE CRASHES
+# ==========================
 if "report_text" not in st.session_state:
-    st.session_state.report_text = ""
+    st.session_state.report_text = ""        # prevents KeyError on report display
+
+if "auto_refresh_on" not in st.session_state:
+    st.session_state.auto_refresh_on = True  # ensures live refresh works safely
 
 
 
@@ -405,4 +411,5 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>",unsafe_allow_html=True)
+
 
