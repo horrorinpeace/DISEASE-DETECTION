@@ -122,50 +122,41 @@ try:
 except Exception as e: st.error(f"Model failed to load: {e}"); model=None; CLASS_NAMES=[]
 
 # ==========================
-# CORRECT READ KEY
+# READ KEY (NEW)
 # ==========================
 READ_KEY = "SO5QAU5RBCQ15WKD"
 
 # ==========================
-# FIXED → MERGE LATEST NON-NULL VALUES FROM MULTIPLE ROWS
+# FIXED — MERGE VALUES FROM MULTIPLE ENTRIES
 # ==========================
 def fetch_sensor_data():
-    # get last N rows so each ESP's latest update is included
     url=f"https://api.thingspeak.com/channels/3152731/feeds.json?api_key={READ_KEY}&results=40"
     try:
         res=requests.get(url,timeout=5).json()
         feeds=res.get("feeds",[])
 
         def latest(field):
-            # go from newest to oldest and return first non-null value
             for row in reversed(feeds):
-                val=row.get(field)
-                if val not in (None,""):
-                    return val
+                if row.get(field) not in (None,""):
+                    return row.get(field)
             return "None"
 
-        if not feeds:
-            timestamp="—"
-        else:
-            timestamp=feeds[-1].get("created_at","—")
+        timestamp = feeds[-1].get("created_at","—") if feeds else "—"
 
         return {
-            "temperature":     latest("field1"),
-            "humidity":        latest("field2"),
-            "soil_moisture":   latest("field3"),
-            "air_quality":     latest("field4"),
-            "light_intensity": latest("field5"),
-            "pressure":        latest("field6"),
+            "temperature":latest("field1"),
+            "humidity":latest("field2"),
+            "soil_moisture":latest("field3"),
+            "air_quality":latest("field4"),
+            "light_intensity":latest("field5"),
+            "pressure":latest("field6"),
             "soil_temperature":latest("field7"),
-            "timestamp":       timestamp
+            "timestamp":timestamp
         }
     except:
-        return {
-            "temperature":"None","humidity":"None","soil_moisture":"None",
-            "air_quality":"None","light_intensity":"None",
-            "pressure":"None","soil_temperature":"None",
-            "timestamp":"—"
-        }
+        return {"temperature":"None","humidity":"None","soil_moisture":"None",
+                "air_quality":"None","light_intensity":"None","pressure":"None",
+                "soil_temperature":"None","timestamp":"—"}
 
 # ==========================
 LANGUAGE_OPTIONS={
@@ -214,13 +205,13 @@ elif page=="AI Detection Panel":
     st.header("Step 1 — Capture or Upload Plant Image")
     st.markdown("<div class='card'>Use your phone camera or upload a clear photo.</div>",unsafe_allow_html=True)
 
-    uploaded_file=st.camera_input("📸 Take a photo of your crop leaf")
+    uploaded_file=st.camera_input("📸 Take a photo")
     if uploaded_file is None:
-        uploaded_file=st.file_uploader("Or upload a leaf image",type=["png","jpg","jpeg"])
+        uploaded_file=st.file_uploader("Or upload",type=["png","jpg","jpeg"])
 
     if uploaded_file:
         image=Image.open(uploaded_file).convert("RGB")
-        st.image(image,caption="🪴 This is the captured image being analyzed",width=300)
+        st.image(image,width=300)
 
         if model:
             img=image.resize((224,224))
@@ -231,14 +222,14 @@ elif page=="AI Detection Panel":
             st.success(f"🌿 Detected: {st.session_state.predicted_class}")
 
     # ==========================
-    # LIVE FARM VALUES
+    # LIVE DATA
     # ==========================
     st.header("Step 2 — Live Farm Data")
     if st.session_state.auto_refresh_on:
         st_autorefresh(interval=5000,limit=None,key="sensor_refresh")
 
     data=fetch_sensor_data()
-    c1,c2,c3,c4,c5,c6,c7=st.columns(7)
+    c1,c2,c3,c4,c5,c6,c7 = st.columns(7)
 
     c1.metric("🌡 Temperature",f"{data['temperature']} °C")
     c2.metric("💧 Humidity",f"{data['humidity']} %")
@@ -251,7 +242,7 @@ elif page=="AI Detection Panel":
     st.caption(f"Last updated: {data['timestamp']}")
 
     # ==========================
-    # REPORT GENERATION
+    # REPORT GENERATION — UPDATED PROMPT
     # ==========================
     st.header("Step 3 — Get Farm Report")
     st.markdown("<div class='card'>The AI will write the report in selected language.</div>",unsafe_allow_html=True)
@@ -259,24 +250,70 @@ elif page=="AI Detection Panel":
     if st.button("🧾 Generate Farm Report"):
         st.session_state.report_text=""
         if not api_key: st.error("Enter Groq API key.")
-        elif not uploaded_file: st.error("Upload or capture an image.")
+        elif not uploaded_file: st.error("Upload or capture image.")
         elif model is None: st.error("Model not loaded.")
         elif "predicted_class" not in st.session_state: st.error("No disease prediction.")
         else:
             st.session_state.auto_refresh_on=False
             try:
                 with st.spinner("Writing report..."):
-                    prompt=f"""
-                    You are a helpful agricultural assistant.
-                    Write a detailed step-by-step farm advisory report in {st.session_state.selected_language}:
-                     Disease: {st.session_state.get('predicted_class')}
-                     Temperature: {data['temperature']}
-                     Humidity: {data['humidity']}
-                     Soil Moisture: {data['soil_moisture']}
-                     Air Quality: {data['air_quality']}
-                     Light Intensity: {data['light_intensity']}
-                     Pressure: {data['pressure']}
-                     Soil Temperature: {data['soil_temperature']}
+
+                    ###################################################
+                    ##  🔥 NEW PROMPT INSERTED — ONLY ADDITIONS MADE  ##
+                    ###################################################
+                    prompt = f"""
+                    You are a helpful agricultural assistant for farmers.
+
+                    Write a VERY detailed, step-by-step farm advisory report in a simple way for farmers to understand in {st.session_state.selected_language}.
+
+                    STRICT RULES (must follow all):
+                    - Never skip information or stay vague.
+                    - Always give specific names of fungicides/pesticides (generic name + 1–2 common brand examples if possible).
+                    - ALWAYS give exact dose in:
+                      • ml or g per litre of water
+                      • ml or g per 15 L knapsack sprayer
+                      • total quantity per acre (or per hectare) and approximate water volume.
+                    - Clearly mention:
+                      • how many times to spray
+                      • gap between sprays (in days)
+                      • waiting period before harvest, if needed.
+                    - Clearly list ALL tools and materials needed:
+                      • sprayer type + nozzle type
+                      • measuring tools
+                      • gloves, goggles, face mask, etc.
+                    - Fill every bullet completely.
+
+                    🔥 Live Farm Conditions to Consider While Writing Report:
+                    Temperature = {data['temperature']} °C
+                    Humidity = {data['humidity']} %
+                    Soil Moisture = {data['soil_moisture']} %
+                    Soil Temperature = {data['soil_temperature']} °C
+                    Air Quality Index = {data['air_quality']}
+                    Light Intensity = {data['light_intensity']} lx
+                    Atmospheric Pressure = {data['pressure']} hPa
+
+                    Based on these values, also include:
+                    - Rain/Dry weather prediction using pressure
+                    - Fungal disease risk if humidity is high
+                    - Sunlight recommendations if light intensity is low
+                    - Irrigation & mulching advice based on soil temperature
+                    - Air quality affect on crops & farmer health
+                    - Preventive action plan for next 7 days
+
+                    Use THIS EXACT FORMAT:
+
+                    - Disease Name:
+                    - What It Means:
+                    - Cause:
+                    - Name of spray to be used & Amount to be sprayed:
+                    - Tools and Materialy Step Process For Treatment (with exact measurements and timing):
+                    - How many times to spray & gap between sprays:
+                    - Safety Precautions for Farmers:
+                    - Prevention Tips Needed (with quantities):
+                    - Step By Step Process For Treatment (with exact measurements and timing):
+                    - How many times to spray & gap between sprays:
+                    - Safety Precautions for Farmers:
+                    - Prevention Tips:
                     """
 
                     url="https://api.groq.com/openai/v1/chat/completions"
@@ -299,12 +336,12 @@ elif page=="AI Detection Panel":
             finally: st.session_state.auto_refresh_on=True
 
 # ==========================
-# DISPLAY + DOWNLOAD REPORT
+# SHOW REPORT + DOWNLOAD
 # ==========================
 if st.session_state.report_text:
     st.markdown("### 🌿 Your Farm Report")
     st.markdown(f"<div class='card'><pre style='white-space:pre-wrap'>{st.session_state.report_text}</pre></div>",unsafe_allow_html=True)
-    st.download_button("📥 Download Farm Report (TXT)",st.session_state.report_text.encode(),file_name="farm_report.txt")
+    st.download_button("📥 Download TXT",st.session_state.report_text.encode(),file_name="farm_report.txt")
 
     try:
         from docx import Document
@@ -321,11 +358,8 @@ if st.session_state.report_text:
             d.add_picture(BytesIO(uploaded_file.getbuffer()),width=Pt(300))
 
         buf=BytesIO(); d.save(buf); buf.seek(0)
-        st.download_button("📥 Download Farm Report (DOCX)",buf.read(),"farm_report.docx")
+        st.download_button("📥 Download DOCX",buf.read(),"farm_report.docx")
     except: st.warning("DOCX export not available.")
 
-# ==========================
-# FOOTER
-# ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>",unsafe_allow_html=True)
