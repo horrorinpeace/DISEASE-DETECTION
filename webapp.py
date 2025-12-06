@@ -155,20 +155,23 @@ st.markdown("---")
 
 
 # ==========================
-# LOAD MODEL
 # ==========================
-# Force save to local folder for stable loading
-model_path = hf_hub_download(
-    repo_id="qwertymaninwork/Plant_Disease_Detection_System",
-    filename="fix.h5",
-    local_dir="models",                     # <–– added
-    local_dir_use_symlinks=False            # <–– added
-)
+# LOAD MODEL FROM GITHUB
+# ==========================
+import urllib.request
+
+MODEL_URL = "https://raw.githubusercontent.com/horrorinpeace/DISEASE-DETECTION/main/fix.h5"
+MODEL_PATH = "fix.h5"
 
 @st.cache_resource
 def load_model():
-    m = tf.keras.models.load_model(model_path, compile=False, safe_mode=False)
-    m = disable_augmentation_layers(m)
+    # Download model once — will reuse stored file later
+    if not os.path.exists(MODEL_PATH):
+        os.makedirs("models", exist_ok=True)
+        urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+
+    m = tf.keras.models.load_model(MODEL_PATH, compile=False, safe_mode=False)
+    m = disable_augmentation_layers(m)   # your original function
     return m
 
 try:
@@ -394,3 +397,4 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>",unsafe_allow_html=True)
+
