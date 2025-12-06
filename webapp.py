@@ -156,22 +156,31 @@ st.markdown("---")
 
 # ==========================
 # ==========================
-# LOAD MODEL FROM GITHUB
 # ==========================
-import urllib.request
+# LOAD MODEL FROM GITHUB + SAFE AUGMENTATION DISABLE
+# ==========================
+import os, urllib.request, tensorflow as tf
+import streamlit as st
 
 MODEL_URL = "https://raw.githubusercontent.com/horrorinpeace/DISEASE-DETECTION/main/fix.h5"
 MODEL_PATH = "fix.h5"
 
+# ---- NEW FIXED VERSION ----
+def disable_augmentation_layers(model):
+    for layer in model.layers:
+        lname = layer.__class__.__name__.lower()
+        if "augment" in lname or "preprocess" in lname or "random" in lname:
+            layer.trainable = False
+    return model
+
 @st.cache_resource
 def load_model():
-    # Download model once — will reuse stored file later
     if not os.path.exists(MODEL_PATH):
         os.makedirs("models", exist_ok=True)
         urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
 
-    m = tf.keras.models.load_model(MODEL_PATH, compile=False, safe_mode=False)
-    m = disable_augmentation_layers(m)   # your original function
+    m = tf.keras.models.load_model(MODEL_PATH, compile=False)
+    m = disable_augmentation_layers(m)   # now safe and compatible
     return m
 
 try:
@@ -189,11 +198,6 @@ except Exception as e:
     st.error(f"Model failed to load: {e}")
     model=None
     CLASS_NAMES=[]
-    
-
-if "report_text" not in st.session_state: st.session_state.report_text=""
-if "selected_language" not in st.session_state: st.session_state.selected_language="English"
-if "auto_refresh_on" not in st.session_state: st.session_state.auto_refresh_on=True
 
 # ==========================
 # SENSOR DATA (PRESSURE ADDED FIELD 6)
@@ -397,4 +401,5 @@ if st.session_state.report_text:
 # ==========================
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>",unsafe_allow_html=True)
+
 
