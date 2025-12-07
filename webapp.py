@@ -14,13 +14,13 @@ from types import MethodType
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 import urllib.request
 
-# ================================================================
+# =====================================================================
 # LANGUAGE MAP
-# ================================================================
-LANG_CODE_MAP = {
-    "English": "en","Hindi":"hi","Bengali":"bn","Tamil":"ta","Telugu":"te",
+# =====================================================================
+LANG_CODE_MAP={
+    "English":"en","Hindi":"hi","Bengali":"bn","Tamil":"ta","Telugu":"te",
     "Kannada":"kn","Malayalam":"ml","Marathi":"mr","Gujarati":"gu",
-    "Punjabi":"pa","Odia":"or","Urdu":"ur",
+    "Punjabi":"pa","Odia":"or","Urdu":"ur"
 }
 
 def translate_with_google(text,target_lang):
@@ -28,7 +28,8 @@ def translate_with_google(text,target_lang):
     if code=="en":return text
     try:
         r=requests.get("https://translate.googleapis.com/translate_a/single",
-        params={"client":"gtx","sl":"en","tl":code,"dt":"t","q":text},timeout=8).json()
+                       params={"client":"gtx","sl":"en","tl":code,"dt":"t","q":text},
+                       timeout=8).json()
         return "".join(i[0] for i in r[0])
     except:return text
 
@@ -37,105 +38,109 @@ def is_mostly_english(t):
     asc=sum(c.isascii() and c.isalpha() for c in t)
     return asc/total>0.85 if total else False
 
-# ================================================================
-# REMOVE RANDOM LAYERS IF PRESENT
-# ================================================================
+# =====================================================================
+# REMOVE RANDOM LAYERS IF ANY
+# =====================================================================
 def disable_augmentation_layers(model):
     def identity(self,x,training=False):return x
-    def scan(l):
-        cname=l.__class__.__name__.lower()
-        if any(i in cname for i in["random","flip","rotate","zoom","augment"]):
-            l.call=identity;l.trainable=False
-        if hasattr(l,"layers"):
-            for s in l.layers:scan(s)
+    def scan(layer):
+        cname=layer.__class__.__name__.lower()
+        if any(k in cname for k in["random","flip","rotate","zoom","augment"]):
+            layer.call=identity;layer.trainable=False
+        if hasattr(layer,"layers"):
+            for s in layer.layers:scan(s)
     scan(model);return model
 
-
-# ================================================================
-# UI THEME (CLEAN, PROFESSIONAL)
-# ================================================================
+# =====================================================================
+# UI THEME (Professional Minimal CropTech UI)
+# =====================================================================
 st.set_page_config(page_title="FarmDoc AI",layout="wide")
 
 st.markdown("""
 <style>
-body,html, .stApp {background:#f1f3f5; font-family:'Inter',sans-serif;}
 
-/* HEADER BAR */
-#hdr{
-    background:#0d3d2c;
-    padding:30px 10px;
+html, body, .stApp {
+    background-color:#f6f7f9;
+    font-family:'Inter',sans-serif;
+    color:#111;
+}
+
+/* === Header === */
+.header-box {
+    background:#114225;
+    padding:38px 10px;
     border-radius:10px;
-    text-align:center;
     color:white;
-    margin-bottom:25px;
+    margin-bottom:30px;
 }
-#hdr h1{margin:0;font-size:40px;font-weight:700;}
-#hdr p{margin-top:6px;font-size:15px;opacity:.9;}
+.header-title {font-size:38px;font-weight:700;margin-bottom:6px;}
+.header-sub {opacity:.88;font-size:16px;}
 
-/* WHITE SECTIONS */
-.card{
-    background:white;
-    border-radius:12px;
-    padding:22px;
-    border:1px solid #e5e5e5;
-    box-shadow:0px 4px 14px rgba(0,0,0,0.05);
-    margin:14px 0;
-}
-
-/* BUTTON STYLE */
-.stButton>button{
-    background:#1f8c58 !important;
-    color:white !important;
-    border:none;
-    padding:10px 22px;
-    border-radius:7px;
-    font-weight:600;
-}
-.stButton>button:hover{background:#13633d !important;}
-
-/* METRIC CARDS */
-.metric{
+/* === Card Sections === */
+.block {
     background:white;
     border-radius:10px;
-    padding:14px;
-    text-align:center;
-    box-shadow:0 3px 11px rgba(0,0,0,0.05);
-    border:1px solid #e5e5e5;
-    transition:.2s;
+    padding:24px;
+    border:1px solid #dcdcdc;
+    margin-bottom:22px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.04);
 }
-.metric:hover{transform:scale(1.03);}
-.metric-label{font-size:13px;font-weight:600;color:#333;}
-.metric-value{font-size:21px;font-weight:700;color:#187a51;margin-top:3px;}
 
-/* SIDEBAR */
-section[data-testid="stSidebar"]{
+/* === Buttons === */
+.stButton>button {
+    background:#18764b!important;
+    color:white!important;
+    padding:10px 26px;
+    font-weight:600;
+    border-radius:6px;
+    border:none;
+    font-size:15px;
+}
+.stButton>button:hover {background:#0d5936!important;}
+
+/* === Sensor Tiles === */
+.metric-tile {
+    background:white;
+    border-radius:8px;
+    padding:14px;
+    border:1px solid #e0e0e0;
+    text-align:center;
+    box-shadow:0 1px 6px rgba(0,0,0,0.05);
+}
+.metric-label {font-size:13px;font-weight:600;color:#333;}
+.metric-value {font-size:20px;font-weight:700;color:#195c3d;margin-top:3px;}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
     background:white;
     border-right:1px solid #ccc;
-    padding-top:15px;
+    padding-top:18px;
 }
-.sidebar-h{font-size:19px;font-weight:650;margin-bottom:10px;}
+.sidebar-title {font-size:18px;font-weight:650;margin-bottom:6px;}
 
 </style>
 """,unsafe_allow_html=True)
 
-# ================================================================
-if "report_text" not in st.session_state:st.session_state.report_text=""
-if "auto_refresh_on" not in st.session_state:st.session_state.auto_refresh_on=True
 
-# ================================================================
+# =====================================================================
+# SESSION INIT
+# =====================================================================
+if "report_text" not in st.session_state: st.session_state.report_text=""
+if "auto_refresh_on" not in st.session_state: st.session_state.auto_refresh_on=True
+
+# =====================================================================
 # HEADER
-# ================================================================
+# =====================================================================
 st.markdown("""
-<div id='hdr'>
-<h1>FarmDoc AI</h1>
-<p>Leaf disease recognition • Live field conditions • Automated treatment guidance</p>
+<div class="header-box">
+    <div class="header-title">FarmDoc AI</div>
+    <div class="header-sub">Plant disease recognition • Live farm telemetry • Action-ready treatment reports</div>
 </div>
 """,unsafe_allow_html=True)
 
-
-# ================================================================
-# LOAD MODEL
-# ================================================================
+# =====================================================================
+# MODEL LOAD
+# =====================================================================
 MODEL_URL="https://raw.githubusercontent.com/horrorinpeace/DISEASE-DETECTION/main/fix.h5"
 MODEL_PATH="fix.h5"
 
@@ -152,136 +157,136 @@ try:
         'HEALTHY TOMATO','HEALTHY WHEAT','MILLETS BLAST','MILLETS RUST','POTATO EARLY BLIGHT','POTATO LATE BLIGHT',
         'RICE BACTERIAL BLIGHT','RICE BROWN SPOT','RICE LEAF SMUT','SUGARCANE RED ROT','SUGARCANE RUST',
         'SUGARCANE YELLOW','TEA GRAY BLIGHT','TEA GREEN MIRID BUG','TEA HELOPELTIS','TOMATO LEAF MOLD',
-        'TOMATO MOSAIC VIRUS','TOMATO SEPTORIA LEAF SPOT','WHEAT BROWN RUST','WHEAT LOOSE SMUT','WHEAT YELLOW RUST']
+        'TOMATO MOSAIC VIRUS','TOMATO SEPTORIA LEAF SPOT','WHEAT BROWN RUST','WHEAT LOOSE SMUT','WHEAT YELLOW RUST' ]
 except:model=None;CLASS_NAMES=[]
 
-
-# ================================================================
+# =====================================================================
 # SENSOR FETCH
-# ================================================================
+# =====================================================================
 READ_KEY="SO5QAU5RBCQ15WKD"
 def fetch():
     try:
         r=requests.get(f"https://api.thingspeak.com/channels/3152731/feeds.json?api_key={READ_KEY}&results=50",timeout=5).json()
-        f=r.get("feeds",[])
-        def get(k):return next((x[k]for x in f[::-1] if x.get(k)),None)
-        return {"temperature":get("field1"),"humidity":get("field2"),"soil_moisture":get("field3"),
-            "air_quality":get("field4"),"light_intensity":get("field5"),"pressure":get("field6"),
-            "soil_temperature":get("field7"),"timestamp":f[-1]["created_at"]if f else"—"}
-    except:return{a:"—"for a in["temperature","humidity","soil_moisture","air_quality","light_intensity","pressure","soil_temperature","timestamp"]}
+        feeds=r.get("feeds",[])
+        def last(x):return next((f[x] for f in feeds[::-1] if f.get(x)),None)
+        return {"temperature":last("field1"),"humidity":last("field2"),"soil_moisture":last("field3"),
+        "air_quality":last("field4"),"light_intensity":last("field5"),"pressure":last("field6"),
+        "soil_temperature":last("field7"),"timestamp":feeds[-1]["created_at"] if feeds else "—"}
+    except:return{v:"—"for v in["temperature","humidity","soil_moisture","air_quality","light_intensity","pressure","soil_temperature","timestamp"]}
 
-# ================================================================
+# =====================================================================
 # SIDEBAR
-# ================================================================
-st.sidebar.markdown("<div class='sidebar-h'>Menu</div>",unsafe_allow_html=True)
-page=st.sidebar.radio("",["About","AI Panel"])
+# =====================================================================
+st.sidebar.markdown("<div class='sidebar-title'>Navigation</div>",unsafe_allow_html=True)
+page=st.sidebar.radio("",["About","AI Detection Panel"])
 
 lang_map={"English":"English","हिन्दी (Hindi)":"Hindi","বাংলা (Bengali)":"Bengali","தமிழ் (Tamil)":"Tamil",
 "తెలుగు (Telugu)":"Telugu","ಕನ್ನಡ (Kannada)":"Kannada","മലയാളം (Malayalam)":"Malayalam",
 "मराठी (Marathi)":"Marathi","ગુજરાતી (Gujarati)":"Gujarati","ਪੰਜਾਬੀ (Punjabi)":"Punjabi",
 "ଓଡ଼ିଆ (Odia)":"Odia","اردو (Urdu)":"Urdu"}
 
-l=st.sidebar.selectbox("Report Language",list(lang_map.keys()))
-st.session_state.selected_language=lang_map[l]
+selection=st.sidebar.selectbox("Report Language",list(lang_map.keys()))
+st.session_state.selected_language=lang_map[selection]
 
 api_key=st.sidebar.text_input("Groq API Key",type="password")
 
-
-# ================================================================
-# PAGE — ABOUT
-# ================================================================
+# =====================================================================
+# ABOUT PAGE
+# =====================================================================
 if page=="About":
-    st.markdown("<h2>About FarmDoc</h2>",unsafe_allow_html=True)
+    st.markdown("<h3>About</h3>",unsafe_allow_html=True)
     st.markdown("""
-    <div class='card'>
-    FarmDoc AI helps farmers diagnose plant diseases from leaf images, view live field
-    sensor readings and get a complete advisory report for treatment, dosage and prevention.
+    <div class='block'>
+    FarmDoc AI helps farmers detect crop diseases using a leaf scan, monitors
+    farm conditions in real-time and produces accurate dosage-based treatment guidance.
     </div>
     """,unsafe_allow_html=True)
 
+# =====================================================================
+# AI PANEL
+# =====================================================================
+elif page=="AI Detection Panel":
 
-# ================================================================
-# PAGE — AI PANEL
-# ================================================================
-elif page=="AI Panel":
+    st.markdown("## Step 1: Upload Leaf Image")
+    st.markdown("<div class='block'>Upload/scan the leaf clearly for best detection accuracy.</div>",unsafe_allow_html=True)
 
-    st.markdown("<h2>Step 1: Upload Plant Leaf Image</h2>",unsafe_allow_html=True)
-    st.markdown("<div class='card'>Upload / capture a leaf image with clear visibility.</div>",unsafe_allow_html=True)
+    upl=st.camera_input("Capture Image") or st.file_uploader("Or Upload from device",type=["png","jpg","jpeg"])
 
-    f=st.camera_input("Capture Photo") or st.file_uploader("Or Upload",type=["png","jpg","jpeg"])
-
-    if f:
-        img=Image.open(f).convert("RGB")
-        st.image(img,width=320)
+    if upl:
+        img=Image.open(upl).convert("RGB")
+        st.image(img,width=350)
 
         if model:
-            x=img.resize((224,224))
-            y=tf.keras.preprocessing.image.img_to_array(x)[None]
-            pred=model.predict(y)
+            r_img=img.resize((224,224))
+            arr=tf.keras.preprocessing.image.img_to_array(r_img)[None]
+            pred=model.predict(arr)
             st.session_state.predicted_class=CLASS_NAMES[np.argmax(pred)]
             st.success("Disease Detected: "+st.session_state.predicted_class)
 
-    st.markdown("<h2>Step 2: Live Field Sensors</h2>",unsafe_allow_html=True)
-    if st.session_state.auto_refresh_on:st_autorefresh(interval=5500,key="refresh")
+    st.markdown("## Step 2: Live Field Telemetry")
 
-    d=fetch()
-    cols=st.columns(7)
-    for c,lbl,val in zip(cols,
-    ["Temp(°C)","Humidity(%)","Soil Moisture","Air Quality","Light(lx)","Pressure(hPa)","Soil Temp"],
-    [d['temperature'],d['humidity'],d['soil_moisture'],d['air_quality'],d['light_intensity'],d['pressure'],d['soil_temperature']]):
-        c.markdown(f"""
-        <div class='metric'>
-            <div class='metric-label'>{lbl}</div>
-            <div class='metric-value'>{val}</div>
-        </div>""",unsafe_allow_html=True)
+    if st.session_state.auto_refresh_on:
+        st_autorefresh(interval=5500,key="refresh")
 
-    st.write(f"Last Update: {d['timestamp']}")
+    data=fetch()
+    c=st.columns(7)
+    labels=["Temp °C","Humidity %","Soil Moisture","Air Quality","Light (lx)","Pressure hPa","Soil Temp °C"]
+    values=[data['temperature'],data['humidity'],data['soil_moisture'],data['air_quality'],
+            data['light_intensity'],data['pressure'],data['soil_temperature']]
 
-    st.markdown("<h2>Step 3: Generate Report</h2>",unsafe_allow_html=True)
+    for col,lbl,val in zip(c,labels,values):
+        col.markdown(f"<div class='metric-tile'><div class='metric-label'>{lbl}</div><div class='metric-value'>{val}</div></div>",
+                     unsafe_allow_html=True)
 
-    if st.button("Generate Treatment Report"):
+    st.caption("Last updated: "+str(data['timestamp']))
+
+    st.markdown("## Step 3: Generate Advisory Report")
+
+    if st.button("Generate Report"):
         if not api_key:st.error("Enter API Key")
-        elif not f:st.error("Upload image first")
+        elif not upl:st.error("Upload an image first")
         elif "predicted_class" not in st.session_state:st.error("No disease detected")
         else:
             st.session_state.auto_refresh_on=False
 
-            with st.spinner("Generating advisory..."):
+            with st.spinner("Generating report..."):
                 prompt=f"""
-Write a detailed farming advisory in {st.session_state.selected_language}.
-Use this structure strictly:
+Write professional farming treatment advice in {st.session_state.selected_language}.
+Include:
 
-- Disease Name:
-- What It Means:
-- Cause:
-- Recommended Spray + Dosage (per litre, per knapsack, per acre):
-- Step-by-step Application:
-- Spray Frequency and Interval:
-- Safety Precautions:
-- Preventive Measures:
+- Disease Name
+- What It Means
+- Cause
+- Spray Recommendation + Dosage
+- Step-by-step Treatment Method
+- Spray Frequency + Interval
+- Safety Precautions
+- Preventive Measures
 
-Live Conditions:
-Temp={d['temperature']} Humidity={d['humidity']} Soil Moisture={d['soil_moisture']}
-Soil Temp={d['soil_temperature']} AQI={d['air_quality']} Light={d['light_intensity']} Pressure={d['pressure']}
+Use live farm conditions:
+Temp={data['temperature']}, Humidity={data['humidity']}, Soil Moisture={data['soil_moisture']}
+Soil Temp={data['soil_temperature']}, AQI={data['air_quality']}, Light={data['light_intensity']}, Pressure={data['pressure']}
 """
 
                 r=requests.post("https://api.groq.com/openai/v1/chat/completions",
                     headers={"Authorization":f"Bearer {api_key}","Content-Type":"application/json"},
                     json={"model":"meta-llama/llama-4-scout-17b-16e-instruct",
-                          "messages":[{"role":"system","content":"You are a farming expert."},
-                                      {"role":"user","content":prompt}],
-                          "temperature":0.6,"max_completion_tokens":800})
-                
-                out=r.json()["choices"][0]["message"]["content"]
-                st.session_state.report_text=translate_with_google(out,st.session_state.selected_language)\
-                                            if st.session_state.selected_language!="English" and is_mostly_english(out) else out
-            st.success("Report Ready.")
+                    "messages":[{"role":"system","content":"You are a farming advisor."},
+                                {"role":"user","content":prompt}],
+                    "temperature":0.6,"max_completion_tokens":800})
 
-# ================================================================
+                output=r.json()["choices"][0]["message"]["content"]
+                st.session_state.report_text=translate_with_google(output,st.session_state.selected_language)\
+                                            if st.session_state.selected_language!="English" and is_mostly_english(output) else output
+
+            st.success("Report Generated")
+
+# =====================================================================
 # SHOW REPORT
-# ================================================================
+# =====================================================================
 if st.session_state.report_text:
-    st.markdown("<h3>Farm Advisory Report</h3>",unsafe_allow_html=True)
-    st.markdown(f"<div class='card'><pre style='white-space:pre-wrap'>{st.session_state.report_text}</pre></div>",unsafe_allow_html=True)
+    st.markdown("### Advisory Report")
+    st.markdown(f"<div class='block'><pre style='white-space:pre-wrap'>{st.session_state.report_text}</pre></div>",
+                unsafe_allow_html=True)
 
-    st.download_button("Download TXT",st.session_state.report_text.encode(),"farm_report.txt")
+    st.download_button("Download as Text",st.session_state.report_text.encode(),"farm_report.txt")
