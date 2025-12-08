@@ -292,7 +292,7 @@ elif page=="AI Detection Panel":
                     - Prevention Tips Needed (with quantities):
                     - Step By Step Process For Treatment (with exact measurements and timing):
                     - How many times to spray & gap between sprays:
-                    - Weather Forecast(predict the weather for the next 7 days from the recieved farm data):
+                    - Weather Forecast(predict the weather conditions for the next 7 days from the recieved farm data, dont just give the farm data again):
                     - Safety Precautions for Farmers:
                     - Prevention Tips:
                     """
@@ -344,5 +344,6 @@ if st.session_state.report_text:
 
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>",unsafe_allow_html=True)
+
 
 
