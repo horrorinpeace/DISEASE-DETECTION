@@ -71,7 +71,7 @@ if "report_text" not in st.session_state: st.session_state.report_text=""
 if "auto_refresh_on" not in st.session_state: st.session_state.auto_refresh_on=True
 
 # ==========================
-# APP-WIDE STYLES  (CAMERA FIX HERE — MIRROR REMOVED)
+# APP-WIDE STYLES (Camera fixed — mirror removed)
 # ==========================
 def set_background_and_styles():
     st.markdown("""
@@ -83,7 +83,7 @@ def set_background_and_styles():
     .caption{font-size:12px;color:#d6e8ff;opacity:.8;}
     .stButton>button{background:linear-gradient(90deg,#2fb86f,#35c06f)!important;color:white!important;font-weight:600;border-radius:12px!important;}
     .stDownloadButton>button{background:rgba(255,255,255,0.06)!important;color:white!important;border-radius:10px!important;}
-    /* video{transform:scaleX(-1)!important;}  <-- REMOVED SO CAMERA IS NORMAL */
+    /* video{transform:scaleX(-1)!important;}  <-- Removed to make camera normal */
     </style>""",unsafe_allow_html=True)
 set_background_and_styles()
 
@@ -122,15 +122,13 @@ try:
 except Exception as e: st.error(f"Model failed to load: {e}"); model=None; CLASS_NAMES=[]
 
 # ==========================
-# READ KEY (NEW)
-# ==========================
 READ_KEY = "SO5QAU5RBCQ15WKD"
 
 # ==========================
-# FIXED — MERGE VALUES FROM MULTIPLE ENTRIES
+# FIXED — URL corrected (syntax error removed)
 # ==========================
 def fetch_sensor_data():
-    url=f"https://api.thingspeak.com/channels/3152731/feeds.json?api_key={READ_KEY}&results=40}"
+    url=f"https://api.thingspeak.com/channels/3152731/feeds.json?api_key={READ_KEY}&results=40"   # <-- FIXED
     try:
         res=requests.get(url,timeout=5).json()
         feeds=res.get("feeds",[])
@@ -178,7 +176,7 @@ st.session_state.selected_language=LANGUAGE_OPTIONS[selected_language_display]
 api_key=st.sidebar.text_input("🔐 Groq API key",type="password")
 
 # ==========================
-# ABOUT PAGE
+# ABOUT
 # ==========================
 if page=="About":
     st.header("About FarmDoc AI")
@@ -198,7 +196,7 @@ if page=="About":
     """)
 
 # ==========================
-# AI PANEL
+# AI DETECTION PANEL
 # ==========================
 elif page=="AI Detection Panel":
 
@@ -221,9 +219,6 @@ elif page=="AI Detection Panel":
             st.session_state.predicted_class=CLASS_NAMES[np.argmax(pred)]
             st.success(f"🌿 Detected: {st.session_state.predicted_class}")
 
-    # ==========================
-    # LIVE DATA
-    # ==========================
     st.header("Step 2 — Live Farm Data")
     if st.session_state.auto_refresh_on:
         st_autorefresh(interval=5000,limit=None,key="sensor_refresh")
@@ -241,9 +236,6 @@ elif page=="AI Detection Panel":
 
     st.caption(f"Last updated: {data['timestamp']}")
 
-    # ==========================
-    # REPORT GENERATION — UPDATED PROMPT
-    # ==========================
     st.header("Step 3 — Get Farm Report")
     st.markdown("<div class='card'>The AI will write the report in selected language.</div>",unsafe_allow_html=True)
 
@@ -258,9 +250,6 @@ elif page=="AI Detection Panel":
             try:
                 with st.spinner("Writing report..."):
 
-                    ###################################################
-                    ##  🔥 NEW PROMPT INSERTED — ONLY ADDITIONS MADE  ##
-                    ###################################################
                     prompt = f"""
                     You are a helpful agricultural assistant for farmers.
 
@@ -283,7 +272,7 @@ elif page=="AI Detection Panel":
                       • gloves, goggles, face mask, etc.
                     - Fill every bullet completely.
 
-                    🔥 Live Farm Conditions to Consider While Writing Report:
+                    🔥 Live Farm Conditions to Consider:
                     Temperature = {data['temperature']} °C
                     Humidity = {data['humidity']} %
                     Soil Moisture = {data['soil_moisture']} %
@@ -292,16 +281,7 @@ elif page=="AI Detection Panel":
                     Light Intensity = {data['light_intensity']} lx
                     Atmospheric Pressure = {data['pressure']} hPa
 
-                    Based on these values, also include:
-                    - Rain/Dry weather prediction using pressure
-                    - Fungal disease risk if humidity is high
-                    - Sunlight recommendations if light intensity is low
-                    - Irrigation & mulching advice based on soil temperature
-                    - Air quality affect on crops & farmer health
-                    - Preventive action plan for next 7 days
-
-                    Use THIS EXACT FORMAT:
-
+                    Use EXACT format below without removing fields:
                     - Disease Name:
                     - What It Means:
                     - Cause:
@@ -325,19 +305,17 @@ elif page=="AI Detection Panel":
                     }
 
                     r=requests.post(url,headers=headers,json=payload,timeout=40)
-                    output=r.json()["choices"][0]["message"]["content"]
-                    st.session_state.report_text=(
-                        translate_with_google(output,st.session_state.selected_language)
-                        if st.session_state.selected_language!="English" and is_mostly_english(output)
-                        else output
-                    )
-                    st.success("Report generated!")
-            except Exception as e: st.error(f"Error: {e}")
-            finally: st.session_state.auto_refresh_on=True
+                    out=r.json()["choices"][0]["message"]["content"]
+                    st.session_state.report_text=(translate_with_google(out,st.session_state.selected_language)
+                        if st.session_state.selected_language!="English" and is_mostly_english(out) else out)
 
-# ==========================
-# SHOW REPORT + DOWNLOAD
-# ==========================
+                    st.success("Report generated!")
+
+            except Exception as e:
+                st.error(f"Error: {e}")
+            finally:
+                st.session_state.auto_refresh_on=True
+
 if st.session_state.report_text:
     st.markdown("### 🌿 Your Farm Report")
     st.markdown(f"<div class='card'><pre style='white-space:pre-wrap'>{st.session_state.report_text}</pre></div>",unsafe_allow_html=True)
@@ -357,9 +335,11 @@ if st.session_state.report_text:
             d.add_page_break(); d.add_paragraph("Attached leaf image:")
             d.add_picture(BytesIO(uploaded_file.getbuffer()),width=Pt(300))
 
-        buf=BytesIO(); d.save(buf); buf.seek(0)
-        st.download_button("📥 Download DOCX",buf.read(),"farm_report.docx")
-    except: st.warning("DOCX export not available.")
+        buffer=BytesIO(); d.save(buffer); buffer.seek(0)
+        st.download_button("📥 Download DOCX",buffer.read(),"farm_report.docx")
+
+    except:
+        st.warning("DOCX export not available.")
 
 st.markdown("---")
 st.markdown("<div class='caption'>FarmDoc © 2025 — Helping Farmers Grow Smarter</div>",unsafe_allow_html=True)
