@@ -71,7 +71,7 @@ if "report_text" not in st.session_state: st.session_state.report_text=""
 if "auto_refresh_on" not in st.session_state: st.session_state.auto_refresh_on=True
 
 # ==========================
-# APP-WIDE STYLES
+# APP-WIDE STYLES  (CAMERA FIX HERE — MIRROR REMOVED)
 # ==========================
 def set_background_and_styles():
     st.markdown("""
@@ -83,7 +83,7 @@ def set_background_and_styles():
     .caption{font-size:12px;color:#d6e8ff;opacity:.8;}
     .stButton>button{background:linear-gradient(90deg,#2fb86f,#35c06f)!important;color:white!important;font-weight:600;border-radius:12px!important;}
     .stDownloadButton>button{background:rgba(255,255,255,0.06)!important;color:white!important;border-radius:10px!important;}
-    video{transform:scaleX(-1)!important;}
+    /* video{transform:scaleX(-1)!important;}  <-- REMOVED SO CAMERA IS NORMAL */
     </style>""",unsafe_allow_html=True)
 set_background_and_styles()
 
@@ -130,7 +130,7 @@ READ_KEY = "SO5QAU5RBCQ15WKD"
 # FIXED — MERGE VALUES FROM MULTIPLE ENTRIES
 # ==========================
 def fetch_sensor_data():
-    url=f"https://api.thingspeak.com/channels/3152731/feeds.json?api_key={READ_KEY}&results=40"
+    url=f"https://api.thingspeak.com/channels/3152731/feeds.json?api_key={READ_KEY}&results=40}"
     try:
         res=requests.get(url,timeout=5).json()
         feeds=res.get("feeds",[])
